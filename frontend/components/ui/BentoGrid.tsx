@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { IoCopyOutline } from "react-icons/io5";
-import Lottie from "react-lottie";
+
+const LottiePlayer = dynamic(() => import("../LottiePlayer"), { ssr: false });
+import dynamic from "next/dynamic";
 
 import { cn } from "@/lib/utils";
 import { BackgroundGradientAnimation } from "./GradientBg";
 import GridGlobe from "./GridGlobe";
 import animationData from "@/data/confetti.json";
 import MagicButton from "../MagicButton";
+import Image from "next/image";
 
 export const BentoGrid = ({
   className,
@@ -84,21 +87,24 @@ export const BentoGridItem = ({
       <div className={`${id === 6 && "flex justify-center"} h-full`}>
         <div className="w-full h-full absolute">
           {img && (
-            <img
-              src={img}
-              alt="grid image"
-              className={cn(imgClassName, "object-cover object-center")}
-            />
+         <Image
+    src={img}
+    alt="grid image"
+    fill
+    className={cn(imgClassName, "object-cover object-center")}
+    sizes="(max-width: 768px) 100vw, 50vw"
+  />
           )}
         </div>
 
         {spareImg && (
           <div className="absolute right-0 -bottom-5">
-            <img
-              src={spareImg}
-              alt="spare"
-              className="object-cover object-center w-full h-full"
-            />
+      <Image
+      src={spareImg}
+      alt="spare"
+      fill
+      className="object-cover object-center"
+    />
           </div>
         )}
 
@@ -123,7 +129,7 @@ export const BentoGridItem = ({
           {id === 6 && (
             <div className="mt-5 relative">
               <div className={`absolute -bottom-5 right-0`}>
-                <Lottie options={defaultOptions} height={200} width={400} />
+                <LottiePlayer loop={copied}  />
               </div>
               <MagicButton
                 title={copied ? "Email is Copied!" : "Copy my email address"}

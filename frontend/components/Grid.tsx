@@ -8,7 +8,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { TextGenerateEffect } from "./ui/TextGenerateEffect";
-
+import Image from "next/image";
 const Grid = ({
   onSuccess,
   credits,
@@ -114,7 +114,14 @@ const Grid = ({
       {/* 🎉 Confetti Overlay */}
       {showConfetti && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-[9999] bg-black bg-opacity-70">
-          <img src="/confetti.gif" alt="Success" className="w-[300px] h-[300px] object-contain" />
+        <Image
+  src="/confetti.gif"
+  alt="Success"
+  width={300}
+  height={300}
+  className="w-[300px] h-[300px] object-contain"
+/>
+
         </div>
       )}
       {/* Result/Errors */}

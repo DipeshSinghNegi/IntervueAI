@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import RecentProjects from "@/components/RecentProjects";
 import { FloatingNav } from "@/components/ui/FloatingNavbar";
 import DropdownPortal from "@/components/Dropdownportal";
+import Image from "next/image";
 
 type GoogleTokenPayload = {
   name: string;
@@ -164,12 +165,15 @@ useEffect(() => {
     onClick={() => setShowDropdown(prev => !prev)}
     className="w-8 h-8 rounded-full overflow-hidden border border-white"
   >
-    <img
+<Image
   src={userInfo?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo?.name || "User")}`}
+  alt="User Avatar"
+  width={32} // or appropriate size
+  height={32}
+  className="w-full h-full object-cover"
+  unoptimized // necessary for external URLs unless you configure next.config.js
+/>
 
-      alt="User Avatar"
-      className="w-full h-full object-cover"
-    />
   </button>
 
 
@@ -181,11 +185,15 @@ useEffect(() => {
                   >
                     
       <div className="flex items-center gap-3 mb-3">
-        <img
-            src={userInfo?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo?.name || "User")}`}
-          alt="avatar"
-          className="w-10 h-10 rounded-full"
-        />
+<Image
+  src={userInfo?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo?.name || "User")}`}
+  alt="avatar"
+  width={40}
+  height={40}
+  className="w-10 h-10 rounded-full"
+  unoptimized
+/>
+
         <div>
           <p className="font-medium">{userInfo?.name}</p>
           <p className="text-xs text-green-200">{userInfo?.email}</p>
