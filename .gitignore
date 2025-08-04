@@ -17,3 +17,36 @@ ffmpeg-*/
 app/**/__pycache__/
 app/sessions/
 bfg-1.14.0.jar
+
+# Frontend files to ignore
+/frontend/node_modules
+/frontend/.next
+/frontend/out
+/frontend/build
+/frontend/.turbo
+
+# Frontend logs
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+
+# Environment
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.test.local
+/frontend/.env.production.local
+
+# Vercel/Deployment
+/frontend/.vercel
+
+# Misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+
+# Prisma (if used)
+lib/generated/prisma
+
+# ⬅️ Allow Sentry config explicitly (important for Vercel)
+!frontend/sentry.server.config.ts
+!frontend/sentry.client.config.ts

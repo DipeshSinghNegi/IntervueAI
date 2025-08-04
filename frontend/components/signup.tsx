@@ -27,7 +27,7 @@ export default function Signup() {
           callback: (response) => {
             console.log("Google Response:", response);
             console.log('Script loaded. window.google:', window.google);
-
+setTimeout(() => {
             fetch(`${API_BASE_URL}api/v1/gauth`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
