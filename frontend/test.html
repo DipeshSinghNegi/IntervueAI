@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live STT Chunk Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #transcripts { margin-top: 20px; }
+    .chunk { padding: 5px; border-bottom: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <h2>🎙️ Live Speech-to-Text Chunk Test</h2>
+  <button id="startBtn">Start Recording</button>
+  <div id="transcripts"></div>
+
+  <script>
+    const startBtn = document.getElementById("startBtn");
+    const transcriptsDiv = document.getElementById("transcripts");
+    let mediaRecorder, audioChunks = [];
+    const CHUNK_INTERVAL = 3000; // 3 seconds
+    const ENDPOINT = "http://localhost:8001/api/v1/speech/speech_to_text"; // change if deployed
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          const blob = event.data;
+
+          // Convert to WAV on backend or use .wav-compatible frontend
+          const formData = new FormData();
+          formData.append("audio", blob, "chunk.webm");
+
+          try {
+            const res = await fetch(ENDPOINT, {
+              method: "POST",
+              body: formData
+            });
+            const data = await res.json();
+            const transcript = data.text || "No response";
+            const div = document.createElement("div");
+            div.className = "chunk";
+            div.textContent = transcript;
+            transcriptsDiv.appendChild(div);
+          } catch (err) {
+            const errorDiv = document.createElement("div");
+            errorDiv.className = "chunk";
+            errorDiv.textContent = "Error: " + err.message;
+            transcriptsDiv.appendChild(errorDiv);
+          }
+        }
+      };
+
+      mediaRecorder.start();
+      setInterval(() => {
+        if (mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+          mediaRecorder.start();
+        }
+      }, CHUNK_INTERVAL);
+    };
+  </script>
+</body>
+</html>

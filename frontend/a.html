@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Session Testing</title>
+</head>
+<body>
+  <h2>🎯 Create Interview Session</h2>
+  <form id="sessionForm">
+    <label>Scenario: <input type="text" name="scenario" required></label><br><br>
+    <label>Company: <input type="text" name="company" required></label><br><br>
+    <label>Role: <input type="text" name="role" required></label><br><br>
+    <label>Objective: <input type="text" name="objective" required></label><br><br>
+    <label>Resume: <input type="file" name="resume" accept=".pdf,.doc,.docx,.txt" required></label><br><br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="result" style="margin-top: 20px;"></div>
+
+  <script>
+    const form = document.getElementById("sessionForm");
+    const resultDiv = document.getElementById("result");
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch("https://4c2c5ade46c7.ngrok-free.app/api/v1/create_session", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          resultDiv.innerHTML = `<strong>✅ Session ID:</strong> ${data.session_id}`;
+        } else {
+          resultDiv.innerHTML = `<strong>❌ Error:</strong> ${data.detail || 'Unknown error'}`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<strong>❌ Request failed:</strong> ${error.message}`;
+      }
+    };
+  </script>
+</body>
+</html>
