@@ -63,7 +63,7 @@ const Hero = () => {
             Upload. Practice. Improve. Repeat
           </p>
 
-          <a href="#about">
+          <a href="#Form">
             <MagicButton
               title="START"
               icon={<FaLocationArrow />}

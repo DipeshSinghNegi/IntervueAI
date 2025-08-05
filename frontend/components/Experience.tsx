@@ -6,8 +6,8 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Mic, MicOff, Video, VideoOff, LogOut, Play, Bot, User } from "lucide-react";
 import { Button } from "./ui/MovingBorders";
 import { motion, AnimatePresence } from "framer-motion";
-import MagicButton from "../components/MagicButton";
 import { Typewriter } from "@/components/Typerwriter";
+
 
 
 
@@ -27,7 +27,7 @@ type Chunk = {
 type MySpeechRecognitionEvent = Event & { results: SpeechRecognitionResultList };
 
 const workExperience = [
-  { id: 1, title: "Frontend Engineer", description: "React.js, Next.js, Tailwind..." }
+  { id: 1, title: " Engineer", description: "React.js, Next.js, Tailwind..." }
 ];
 
 const Experience = () => {
@@ -889,217 +889,195 @@ recognition.onresult = async (event: MySpeechRecognitionEvent) => {
 
   
 
-  return (
-    <div className="min-h-screen w-full bg-[#05081A] flex flex-col">
-<audio
-  ref={audioElementRef}
-  src={audioUrl || undefined}
-  autoPlay
-  muted={false}
-  style={{ display: 'none' }}
-  playsInline
-/>
-      {showResultPopup && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-80">
-          <div className="bg-[#131419] p-8 rounded-2xl shadow-lg flex flex-col items-center border-2 border-gray-600 relative">
-            <button
-              onClick={() => setShowResultPopup(false)}
-              className="absolute top-2 right-2 text-gray-400 hover:text-white transition"
-              title="Close"
-            >
-              ✕
-            </button>
-            <h2 className="text-xl  mb-4 text-white text-center">Your interview has ended</h2>
-           
-           
-
-            <button
-              title="Show Result"
-              onClick={() => {
-                router.push(`/result?session_id=${sessionId}&email=${email}`);
-              }}
-              className="text-white bg-cyan-600 hover:bg-cyan-500 px-3 py-3 rounded-full text-lg "
-            >
-              Show Result
-            </button>
-
-          </div>
-        </div>
-      )}
-
-
-      <div className="w-full px-4 sm:px-6 pt-6 pb-4 flex flex-col sm:flex-row items-center justify-between">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-xl sm:text-2xl text-white">IntervueAI</span>
-          <span className="ml-2 text-gray-400 text-xs border border-gray-700 bg-[#222444] rounded-full px-2 py-0.5">English</span>
-      
-          <span className="ml-2 text-green-400 border border-gray-700 bg-[#18271A] text-xs rounded-full px-2 py-0.5">Hiring</span>
-        </div>
-        <div className="flex items-center gap-3 mt-3 sm:mt-0">
-          <span className="text-slate-200/90 mr-1 text-sm">Interview Time</span>
-          <span className="font-mono text-lg font-semibold text-green-400">{formatTime(timeElapsed)}</span>
+return (
+  <div className="min-h-screen  bg-[#05081A] flex items-center justify-center flex-col pt-5">
+    <audio
+      ref={audioElementRef}
+      src={audioUrl || undefined}
+      autoPlay
+      muted={false}
+      style={{ display: 'none' }}
+      playsInline
+    />
+    {showResultPopup && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-80">
+        <div className="bg-[#131419] p-8 rounded-2xl shadow-lg flex flex-col items-center border-2 border-gray-600 relative">
+          <button
+            onClick={() => setShowResultPopup(false)}
+            className="absolute top-2 right-2 text-gray-400 hover:text-white transition"
+            title="Close"
+          >
+            ✕
+          </button>
+          <h2 className="text-xl  mb-4 text-white text-center">Your interview has ended</h2>
+          <button
+            title="Show Result"
+            onClick={() => {
+              router.push(`/result?session_id=${sessionId}&email=${email}`);
+            }}
+            className="text-white bg-gray-600 border border-green-200 hover:bg-green-500 px-3 py-3 rounded-full text-lg "
+          >
+            Show Result
+          </button>
         </div>
       </div>
-
-      <Button
-        key={frontendExp?.id}
-        duration={15000}
-        borderRadius="1.75rem"
-        className="text-black dark:text-white border-neutral-200 dark:border-slate-800 h-auto min-h-[69vh] flex items-center justify-center"
-      >
-        <div className="flex flex-row w-full h-full gap-4 md:gap-8 md:p-6 items-stretch justify-center p-2 sm:p-5">
-          <div className="relative w-full md:flex-1 md:max-w-xl max-w-sm rounded-2xl bg-[#0c1327] flex flex-col shadow-md mb-4 md:mb-0">
-            <div className="flex-1 min-h-[180px] md:min-h-[340px] flex items-center justify-center bg-black relative ">
-              {videoOn ? (
-                <Webcam audio={false} mirrored className="w-full h-full object-cover transition-all duration-300 rounded-xl" />
-              ) : (
-                <div className="flex items-center justify-center w-full h-full text-white text-2xl">📷 Video Off</div>
-              )}
-              <div className="absolute top-3 right-3 bg-red-500/90 text-xs text-white px-3 py-1 rounded-full shadow font-bold select-none">Rec</div>
-              <div className="absolute top-3 left-3 bg-black/30 text-white text-xs rounded px-3 py-1 select-none">{frontendExp?.title ?? "You"}</div>
-              <div className="absolute bottom-3 left-4 flex items-center">
-                <div className={`w-5 h-5 rounded-full ring-2 ring-white ${speaking === "student" ? "bg-green-400 animate-pulse" : "bg-gray-500"}`}></div>
-                <span className="ml-2 text-xs text-white/40 hidden md:inline">{speaking === "student" ? "Speaking..." : ""}</span>
-              </div>
-              <div className="absolute bottom-3 right-4 flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    if (audioStream) {
-                      audioStream.getAudioTracks().forEach(track => {
-                        track.enabled = !muted;
-                      });
-                    }
-                    setMuted(!muted);
-                  }}
-                  className={`w-7 h-7 flex items-center justify-center rounded-full ${muted ? "bg-gray-700/40 border border-gray-700" : "bg-green-600/20 border border-green-600"} hover:bg-green-500/20 shadow hover:scale-105 transition`}
-                  title={muted ? "Unmute" : "Mute"}
-                  aria-label={muted ? "Unmute" : "Mute"}
-                  disabled={sessionEnded}
-                >
-                  {muted ? <MicOff className="w-5 h-5 text-gray-400" /> : <Mic className="w-5 h-5 text-green-400" />}
-                </button>
-                <button
-                  onClick={() => setVideoOn(!videoOn)}
-                  className={`w-7 h-7 flex items-center justify-center rounded-full ${videoOn ? "bg-blue-600/20 border border-blue-600" : "bg-gray-700/40 border border-gray-700"} hover:bg-blue-600/30 shadow hover:scale-105 transition`}
-                  title={videoOn ? "Turn off video" : "Turn on video"}
-                  aria-label={videoOn ? "Turn off video" : "Turn on video"}
-                  disabled={sessionEnded}
-                >
-                  {videoOn ? <Video className="w-5 h-5 text-blue-400" /> : <VideoOff className="w-5 h-5 text-gray-400" />}
-                </button>
-              </div>
-            </div>
-          </div>
- 
-
-          <div className="w-full md:max-w-[400px] flex flex-col gap-3 md:gap-4">
-            <div className="bg-[#151a2b] rounded-2xl border border-[#333955] shadow p-3 md:p-4 overflow-y-auto text-[0.8rem] h-[230px] font-light" ref={chatContainerRef}>
-              <div className="p-4 space-y-6 custom-scrollbar">
-
-
-     {messages.map((msg, idx) => (
-  <div key={idx} className="flex items-start gap-2 w-full">
-    {/* Icon on the left */}
-    <div className="flex-shrink-0 w-9 flex justify-center mt-0.5">
-      <span className={`flex items-center justify-center rounded-full w-6 h-6 ${msg.from === "ai" ? "bg-[#181e27]" : "bg-transparent"}`}>
-        {msg.from === "ai" ? (
-          <Bot className="text-white w-5 h-5" />
-        ) : (
-          <User className="text-cyan-300 w-5 h-5" />
-        )}
-      </span>
+    )}
+    <div className="w-full px-9 pl-14 sm:px-6  pb-4 flex flex-col sm:flex-row items-center justify-between">
+      <div className="flex items-center md:gap-5 gap-2 md:ml-7 flex-wrap">
+        <span className="!font-bold !text-2xl md:!text-3xl  text-white">IntervueAI</span>
+        <span className="ml-2 text-gray-400 !text-sm border border-gray-700 bg-[#222444] rounded-full px-3 py-0.5">English</span>
+        <span className="ml-2 text-green-400 !text-sm border border-gray-700 bg-[#18271A] rounded-full px-3 py-0.5">Hiring</span>
+      </div>
+      <div className="flex items-center gap-3 mt-3 sm:mt-0">
+        <span className="text-slate-200/90 mr-1 md:!text-lg !text-sm">Interview Time</span>
+        <span className="font-mono !text-sm md:!text-lg pt-1 font-semibold text-green-400">{formatTime(timeElapsed)}</span>
+      </div>
     </div>
-
-    {/* Message bubble */}
-    <motion.div
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.1* idx, duration: 0.1, ease: "easeOut" }}
-      className={`px-2 py-1 rounded-2xl max-w-[85%] text-[0.6rem] font-normal text-white`}
-      style={{
-        backgroundColor: msg.from === "ai" ? "#202733" : "#17313a",
-        borderTopLeftRadius: msg.from === "ai" ? "0.25rem" : "1rem",
-        borderTopRightRadius: msg.from === "ai" ? "1rem" : "0.25rem",
-        wordBreak: "break-word",
-      }}
+    <Button
+      key={frontendExp?.id}
+      duration={15000}
+      borderRadius="1.75rem"
+      className="text-black dark:text-white  border-neutral-200 dark:border-slate-800 w-full max-w-none max-h-full  min-h-[69vh] flex  "
+     containerClassName="w-full max-w-none"
     >
-           {msg.from === "ai" ? <Typewriter text={msg.text} speed={55} /> : msg.text}
-    </motion.div>
-  </div>
-))}
-
-
-
-                <AnimatePresence>
-                  {showInterim && (
-                    <motion.div
-                      key="interim"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: interimVisible ? 1 : 0.2 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.4 }}
-                      className="flex items-start justify-end gap-2 w-full"
-                    >
-                      <div className="bg-[#14333d] text-white/90 px-2 py-1 rounded-2xl rounded-tr-md max-w-[100%] text-[1rem] font-normal" style={{ wordBreak: "break-word" }}>
-                        {liveInterim}
-                      </div>
-                      <div className="flex-shrink-0 w-9 flex justify-center mt-0.5">
-                        <span className="flex items-center justify-center rounded-full bg-transparent w-7 h-7">
-                          <User className="text-green-300 w-5 h-5 opacity-50" />
-                        </span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-
-
-                <div ref={chatEndRef}></div>
-
-              </div>
+      <div  className="flex flex-row w-full max-w-full max-h-full   md:p-10 min-h-[69vh]
+         h-full gap-7 md:gap-8     ">
+        <div className="relative w-full min-w-[50vw] p-9 my-10 sm:my-0 max-w-[50vw] md:flex-1  rounded-3xl bg-[#0c1327] flex flex-col shadow-md mb-4 md:mb-0">
+          <div className="flex-1 w-full min-w-[50vw]  min-h-[200px] md:min-h-[340px] flex items-center justify-center bg-black relative ">
+            {videoOn ? ( 
+              <Webcam audio={false} mirrored className="w-full h-full object-cover transition-all duration-300 rounded-2xl" />
+            ) : (
+              <div className="flex items-center justify-center w-full h-full text-white !text-2xl">📷 Video Off</div>
+            )}
+            <div className="absolute top-3 right-3 bg-red-500/90 !text-sm md:!text-lg text-white px-3 py-1 rounded-full shadow font-bold select-none">Rec</div>
+            <div className="absolute top-3 left-3 bg-black/30 text-white text-xs rounded px-3 py-1 select-none">{frontendExp?.title ?? "You"}</div>
+            <div className="absolute bottom-3 left-4 flex items-center">
+              <div className={`md:w-10 w-5 h-5 md:h-10 rounded-full ring-2 ring-white ${speaking === "student" ? "bg-green-400 animate-pulse" : "bg-gray-500"}`}></div>
+              <span className="ml-2 text-xs text-white/40 hidden md:inline">{speaking === "student" ? "Speaking..." : ""}</span>
             </div>
-            <div className="bg-green-50/10 border border-green-700 rounded-xl flex flex-col sm:flex-row gap-1 sm:gap-4 items-center shadow min-h-[100px] md:h-[30%] justify-center px-3 py-1">
-              <span className="text-green-400 font-semibold text-xs md:text-sm">AI Interviewer</span>
-              <span className="text-base md:text-lg bg-green-100/30 rounded-full px-3 md:px-5 py-1 md:py-2 shadow-inner font-bold text-green-700">A</span>
+            <div className="absolute bottom-3 right-4 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (audioStream) {
+                    audioStream.getAudioTracks().forEach(track => {
+                      track.enabled = !muted;
+                    });
+                  }
+                  setMuted(!muted);
+                }}
+                className={`md:w-10 md:h-10 h-6 w-6 flex items-center justify-center rounded-full ${muted ? "bg-gray-700/40 border border-gray-700" : "bg-green-600/20 border border-green-600"} hover:bg-green-500/20 shadow hover:scale-105 transition`}
+                title={muted ? "Unmute" : "Mute"}
+                aria-label={muted ? "Unmute" : "Mute"}
+                disabled={sessionEnded}
+              >
+                {muted ? <MicOff className="md:w-6 h-3 w-3 md:h-6 text-gray-400" /> : <Mic className="w-9 h-9 text-green-400" />}
+              </button>
+              <button
+                onClick={() => setVideoOn(!videoOn)}
+                className={`md:w-10 md:h-10 h-6 w-6 flex items-center justify-center rounded-full ${videoOn ? "bg-blue-600/20 border border-blue-600" : "bg-gray-700/40 border border-gray-700"} hover:bg-blue-600/30 shadow hover:scale-105 transition`}
+                title={videoOn ? "Turn off video" : "Turn on video"}
+                aria-label={videoOn ? "Turn off video" : "Turn on video"}
+                disabled={sessionEnded}
+              >
+                {videoOn ? <Video className="md:w-6 md:h-6 h-3 w-3 text-blue-400" /> : <VideoOff className="w-9 h-9 text-gray-400" />}
+              </button>
             </div>
           </div>
         </div>
-      </Button>
-      
-
-      <div className="flex w-full justify-center pb-6 md:pb-4 px-2">
-        <div className="mt-5">
-          {!timerActive ? (
-           <button
-  onClick={async () => {
-    setTimerActive(true);
-    setInterviewStarted(true);
-                await streamAIReply(`${API_BASE_URL}api/v1/start_interview`, "start");
-  }}
-  className={`w-10 h-10 flex items-center justify-center rounded-full border text-lg font-bold transition shadow
-    ${aiStreaming ? "bg-gray-400 text-white cursor-not-allowed" : "bg-green-600/20 text-green-400 border-green-800 hover:bg-green-700/80 hover:scale-105"}
-  `}
-  title="Start Interview"
-  aria-label="Start Interview"
-  disabled={sessionEnded || aiStreaming}
->
-  <Play className="w-6 h-6" />
-</button>
-
-          ) : (
-            <button
-              onClick={handleLeave}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-red-700/10 hover:bg-red-700/30 shadow hover:scale-105 transition text-red-400 border border-red-800"
-              title="Leave Interview"
-              aria-label="Leave Interview"
-              disabled={sessionEnded}
-            ><LogOut className="w-6 h-6" /></button>
-            
-          )}
+        <div className="w-full p-6 pl-8 md:py-10 py-20   flex flex-col gap-3 md:gap-5">
+          <div className="bg-[#151a2b] rounded-2xl border border-[#333955] shadow p-3 md:p-6 overflow-y-auto text-[0.8rem] h-[250px] min-h-[30vh] md:min-h-[40vh] font-light" ref={chatContainerRef}>
+            <div className="p-4 space-y-6 custom-scrollbar"> 
+              {messages.map((msg, idx) => (
+                <div key={idx} className="flex items-start gap-2 w-full">
+                  {/* Icon on the left */}
+                  <div className="flex-shrink-0 w-9 flex justify-center mt-0.5">
+                    <span className={`flex items-center justify-center rounded-full w-6 h-6 ${msg.from === "ai" ? "bg-[#181e27]" : "bg-transparent"}`}>
+                      {msg.from === "ai" ? (
+                        <Bot className="text-white w-5 h-5" />
+                      ) : (
+                        <User className="text-cyan-300 w-5 h-5" />
+                      )}
+                    </span>
+                  </div>
+                  {/* Message bubble */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * idx, duration: 0.1, ease: "easeOut" }}
+                    className={`px-2 py-1 rounded-2xl max-w-[85%] text-[0.6rem] font-normal text-white`}
+                    style={{
+                      backgroundColor: msg.from === "ai" ? "#202733" : "#17313a",
+                      borderTopLeftRadius: msg.from === "ai" ? "0.25rem" : "1rem",
+                      borderTopRightRadius: msg.from === "ai" ? "1rem" : "0.25rem",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {msg.from === "ai" ? <Typewriter text={msg.text} speed={55} /> : msg.text}
+                  </motion.div>
+                </div>
+              ))}
+              <AnimatePresence>
+                {showInterim && (
+                  <motion.div
+                    key="interim"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: interimVisible ? 1 : 0.2 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex items-start justify-end gap-2 w-full"
+                  >
+                    <div className="bg-[#14333d] text-white/90 px-2 py-1 rounded-2xl rounded-tr-md max-w-[100%] text-[1rem] font-normal" style={{ wordBreak: "break-word" }}>
+                      {liveInterim}
+                    </div>
+                    <div className="flex-shrink-0 w-9 flex justify-center mt-0.5">
+                      <span className="flex items-center justify-center rounded-full bg-transparent w-7 h-7">
+                        <User className="text-green-300 w-5 h-5 opacity-50" />
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div ref={chatEndRef}></div>
+            </div>
+          </div>
+          <div className="bg-green-50/10 border border-green-700 rounded-xl flex flex-col sm:flex-row gap-1 sm:gap-4 items-center shadow min-h-[100px] h-[35%] justify-center px-3 py-1">
+            <span className="text-green-400 font-semibold !text-lg md:!text-2xl ">AI Interviewer</span>
+            <span className="text-base md:text-lg bg-green-100/30 rounded-full px-3 md:px-5 py-1 md:py-2 shadow-inner font-bold text-green-900">A</span>
+          </div>
         </div>
       </div>
+    </Button>
+    <div className="flex w-full justify-center pb-6 md:pb-4 px-2">
+      <div className="mt-5">
+        {!timerActive ? (
+          <button
+            onClick={async () => {
+              setTimerActive(true);
+              setInterviewStarted(true);
+              await streamAIReply(`${API_BASE_URL}api/v1/start_interview`, "start");
+            }}
+            className={`md:w-12 md:h-12 w-8 h-8 mt-4 flex items-center justify-center rounded-full border text-lg font-bold transition shadow
+              ${aiStreaming ? "bg-gray-400 text-white cursor-not-allowed" : "bg-green-600/20 text-green-400 border-green-800 hover:bg-green-700/80 hover:scale-105"}
+            `}
+            title="Start Interview"
+            aria-label="Start Interview"
+            disabled={sessionEnded || aiStreaming}
+          >
+            <Play className="w-5 h-5 " />
+          </button>
+        ) : (
+          <button
+            onClick={handleLeave}
+            className="md:w-12 md:h-12 mt-4 flex items-center justify-center rounded-full bg-red-700/10 hover:bg-red-700/30 shadow hover:scale-105 transition text-red-400 border border-red-800"
+            title="Leave Interview"
+            aria-label="Leave Interview"
+            disabled={sessionEnded}
+          ><LogOut className="w-5 h-5" /></button>
+        )}
+      </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Experience;

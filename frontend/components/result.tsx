@@ -128,7 +128,7 @@ const Result = () => {
 
 
   return (
-    <div className="min-h-screen w-full gap-0 bg-[#05081A] flex flex-col">
+    <div className="min-h-screen pt-7 w-full gap-0 bg-[#05081A] flex flex-col">
       {/* Header */}
       <div className="w-full px-4 sm:px-6 pt-2 pb-2 flex flex-col sm:flex-row items-center justify-center ">
         <div className="w-full px-4 sm:px-6 pt-3 pb-2 flex flex-col items-center text-center gap-2">
@@ -168,7 +168,7 @@ const Result = () => {
         }}
         className="text-black dark:text-white border-neutral-200 dark:border-slate-800 h-auto min-h-[70vh] flex"
       >
-        <div className="w-full sm:h-[70vh] h-auto bg-[#10131f] border border-[#222444] rounded-2xl flex flex-col sm:flex-row gap-0 overflow-hidden">
+        <div className="w-full h-[80vh]  bg-[#10131f] border border-[#222444] rounded-2xl flex flex-col sm:flex-row gap-0 overflow-hidden">
 
           {/* Session */}
           <div className="w-full sm:w-1/5 lg:w-1/6 flex flex-col items-center justify-start bg-[#0d1117]/50 border-r border-[#222444] p-4 text-center">
@@ -182,7 +182,7 @@ const Result = () => {
   
 
           {/* Results */}
-          <div className="w-full  flex flex-col overflow-hidden">
+          <div className="w-full h-full  flex flex-col overflow-hidden">
             <h2 className="font-bold text-xl text-white p-4 border-b border-[#1b1f2f]">Result Summary</h2>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
               {resultData.length ? (
@@ -203,7 +203,7 @@ const Result = () => {
 
 
           {/* Chat */}
-          <div className="w-full sm:w-2/4 lg:w-2/5  flex flex-col border-r border-[#222444] overflow-hidden">
+          <div className="w-full h-full sm:w-2/4 lg:w-2/5  flex flex-col border-r border-[#222444] overflow-hidden">
             <h2 className="font-bold text-sm text-white p-4 border-b border-[#1b1f2f]">Chat History</h2>
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
               {chatHistory.length > 0 ? (

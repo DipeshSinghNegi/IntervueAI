@@ -24,7 +24,7 @@ export const BentoGrid = ({
     <div
       className={cn(
         // Grid on small screens, flex on large screens
-       "grid grid-cols-1 gap-6 w-full max-w-5xl mx-auto px-4 md:px-8 lg:px-12 xl:px-16"
+       "grid grid-cols-1 gap-6 w-full mx-auto px-4 md:px-8 "
  ,
         className
       )}

@@ -1,4 +1,5 @@
 "use client";
+
 import React from "react";
 import {
   motion,
@@ -32,8 +33,7 @@ export function Button({
   return (
     <Component
       className={cn(
-        // remove h-16 w-40, add  md:col-span-2
-        "bg-transparent relative text-xl p-[1px] overflow-hidden md:col-span-2 md:row-span-1",
+        "bg-transparent relative p-[1px] overflow-hidden w-full", 
         containerClassName
       )}
       style={{
@@ -42,7 +42,7 @@ export function Button({
       {...otherProps}
     >
       <div
-        className="absolute inset-0 rounde-[1.75rem]"
+        className="absolute inset-0 rounded-[1.75rem]" 
         style={{ borderRadius: `calc(${borderRadius} * 0.96)` }}
       >
         <MovingBorder duration={duration} rx="30%" ry="30%">
@@ -54,10 +54,9 @@ export function Button({
           />
         </MovingBorder>
       </div>
-
       <div
         className={cn(
-          "relative bg-slate-900/[0.] border border-slate-800 backdrop-blur-xl text-white flex items-center justify-center w-full h-full text-sm antialiased",
+          "relative bg-slate-900/80 border border-slate-800 backdrop-blur-xl text-white flex w-full h-full max-h-full antialiased", // Removed text-sm, fixed opacity
           className
         )}
         style={{
