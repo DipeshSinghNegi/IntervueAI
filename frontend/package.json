@@ -37,6 +37,7 @@
     "voice-activity-detection": "^0.0.5"
   },
   "devDependencies": {
+    "@types/google.accounts": "^0.0.17",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

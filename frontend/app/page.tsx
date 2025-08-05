@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import jwtDecode from "jwt-decode";
+
 import { FaUserCircle, FaBolt } from 'react-icons/fa';
 import { navItems } from "@/data";
 import Hero from "@/components/Hero";
@@ -232,10 +232,10 @@ useEffect(() => {
           userEmail={userInfo?.email || ""}
         />
 
-        <div ref={projectRef}>
-          <RecentProjects refreshTrigger={refreshKey} />
-        </div>
-     
+      <div ref={projectRef}>
+  <RecentProjects />
+</div>
+
         <Footer />
       </div>
     </main>
