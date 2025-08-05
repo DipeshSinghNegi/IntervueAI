@@ -24,7 +24,7 @@ export const BentoGrid = ({
     <div
       className={cn(
         // Grid on small screens, flex on large screens
-       "grid grid-cols-1 gap-6 w-full mx-auto px-4 md:px-8 "
+       "grid grid-cols-1 gap-6 w-full  "
  ,
         className
       )}
@@ -76,7 +76,7 @@ export const BentoGridItem = ({
   return (
     <div
       className={cn(
-        "row-span-1 relative overflow-hidden rounded-3xl border border-white/[0.1] group/bento hover:shadow-xl transition duration-200 shadow-input dark:shadow-none justify-between flex flex-col space-y-4 flex-1 max-w-screen-lg",
+        "row-span-1 relative overflow-hidden rounded-3xl border border-white/[0.1] group/bento hover:shadow-xl transition duration-200 shadow-input dark:shadow-none justify-between flex flex-col flex-1 max-w-screen-2xl",
         className
       )}
       style={{

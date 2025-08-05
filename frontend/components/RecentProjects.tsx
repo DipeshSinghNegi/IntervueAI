@@ -14,12 +14,12 @@ const AboutPage = () => {
   };
 
   return (
-    <div className="min-h-screen " id="about">
+    <div className="min-h-screen max-w-9xl " id="about">
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Main Header Section */}
         <div className="text-center mb-16">
           <h1
-            className="md:text-4xl text-2xl font-bold mb-6 md:px-4 leading-tight"
+            className="md:text-5xl text-3xl font-bold mb-6 md:px-4 leading-tight"
             style={{ color: colors.primaryDark }}
           >
             Master Your Interview Skills with AI
