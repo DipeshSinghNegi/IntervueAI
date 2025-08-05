@@ -13,8 +13,7 @@ const Result = () => {
     const [allSessions, setAllSessions] = useState<any[]>([]);
     const [selectedSessionIndex, setSelectedSessionIndex] = useState(0);
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
-    const storedUser = localStorage.getItem("user");
-    console.log("👤 Stored user:", storedUser);
+    
 
   const [chatHistory, setChatHistory] = useState<{ from: string; text: string }[]>([]);
   const [resultData, setResultData] = useState<
