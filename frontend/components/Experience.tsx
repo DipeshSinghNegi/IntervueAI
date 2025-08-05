@@ -6,7 +6,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Mic, MicOff, Video, VideoOff, LogOut, Play, Bot, User } from "lucide-react";
 import { Button } from "./ui/MovingBorders";
 import { motion, AnimatePresence } from "framer-motion";
-import MagicButton from "./MagicButton";
+import MagicButton from "../components/MagicButton";
 import { Typewriter } from "@/components/Typerwriter";
 
 
@@ -141,12 +141,22 @@ useEffect(() => {
   audioContextRef.current = context;
   scheduledTimeRef.current = context.currentTime;
 
-  document.body.addEventListener("click", () => {
-    context.resume(); 
-  }, { once: true });
+  document.body.addEventListener(
+    "click",
+    () => {
+      context.resume();
+    },
+    { once: true }
+  );
 
-  return () => context.close();
+  return () => {
+    // Cleanup safely, without returning a Promise
+    context.close().catch((err) => {
+      console.error("Failed to close AudioContext", err);
+    });
+  };
 }, []);
+
 
 
  
@@ -717,7 +727,10 @@ useEffect(() => {
 
    let finalTranscriptBuffer = "";
 let finalTranscriptTimer: ReturnType<typeof setTimeout> | null = null;
-
+interface MySpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
 recognition.onresult = async (event: MySpeechRecognitionEvent) => {
   let interimTranscript = "";
   for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -730,7 +743,7 @@ recognition.onresult = async (event: MySpeechRecognitionEvent) => {
 
   setLiveInterim(interimTranscript);
 
-  if (finalTranscriptBuffer && interviewStarted && !isStreamingRef.current && !aiSpeaking && !sessionEnded.current) {
+  if (finalTranscriptBuffer && interviewStarted && !isStreamingRef.current && !aiSpeaking && !sessionEnded) {
     // Clear previous timer
     if (finalTranscriptTimer) clearTimeout(finalTranscriptTimer);
 
@@ -898,16 +911,17 @@ recognition.onresult = async (event: MySpeechRecognitionEvent) => {
             </button>
             <h2 className="text-xl  mb-4 text-white text-center">Your interview has ended</h2>
            
+           
 
-            <MagicButton
+            <button
               title="Show Result"
-              handleClick={() => {
+              onClick={() => {
                 router.push(`/result?session_id=${sessionId}&email=${email}`);
               }}
               className="text-white bg-cyan-600 hover:bg-cyan-500 px-3 py-3 rounded-full text-lg "
             >
               Show Result
-            </MagicButton>
+            </button>
 
           </div>
         </div>
