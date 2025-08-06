@@ -241,7 +241,12 @@ const Result = () => {
       {/* Back button */}
       <div className="flex w-full justify-center pb-6 md:pb-10 px-2 mt-2">
         <button
-          onClick={() => router.push("/")}
+       onClick={() => {
+  localStorage.removeItem("session_id");     // ✅ clear session
+  // ✅ clear email (optional but recommended)
+  router.push("/");
+}}
+
           className="w-10 h-10 flex items-center justify-center rounded-full bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 border border-cyan-800 shadow hover:scale-105 transition"
           title="Back to Home"
           aria-label="Back to Home"

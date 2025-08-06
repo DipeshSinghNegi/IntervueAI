@@ -56,6 +56,7 @@ const router = useRouter();
 
 const handleLogout = () => {
   localStorage.removeItem("token");
+  
   setToken(null);
   setUserInfo(null);
   setShowDropdown(false);

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "personalized interview feedback",
   ],
   icons: {
-    icon: "/jsm-logo.png",
+    icon: "/intrlogo.jpeg",
   },
 };
 export const viewport = {
@@ -35,7 +35,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/jsm-logo.png" sizes="any" />
+        <link rel="icon" href="/intrlogo.jpeg" sizes="any" />
       </head>
       <body className={inter.className}>
         <ThemeProvider
