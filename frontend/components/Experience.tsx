@@ -30,7 +30,16 @@ const workExperience = [
   { id: 1, title: " Engineer", description: "React.js, Next.js, Tailwind..." }
 ];
 
-const Experience = () => {
+  
+ type ExperienceProps = {
+  sessionId: string;
+  email: string;
+};
+ 
+
+
+
+export default function Experience({ sessionId, email }: ExperienceProps) {
   // --- MSE streaming setup ---
   const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [chunks, setChunks] = useState<Chunk[]>([]);
@@ -46,11 +55,10 @@ const Experience = () => {
   const [showResultPopup, setShowResultPopup] = useState(false);
 
   const params = useParams();
-  const sessionId = params.session_id as string;
 
   const searchParams = useSearchParams();
 
-  const email = searchParams.get('email');
+
 
   const currentAIChunkNumsRef = useRef<number | null>(null); 
 
@@ -862,7 +870,7 @@ recognition.onresult = async (event: MySpeechRecognitionEvent) => {
     setShowResultPopup(true); // Just show the popup
 
     try {
-      console.log("session id and email: ", { session_id: sessionId, email });
+     
       await fetch(`${API_BASE_URL}api/v1/end_interview`, {
         method: "POST",
         headers: {
@@ -881,15 +889,12 @@ recognition.onresult = async (event: MySpeechRecognitionEvent) => {
 
   if (!mounted) return null;
 
-  
- 
- 
-
-
 
   
 
 return (
+ 
+    
   <div className="min-h-screen  bg-[#05081A] flex items-center justify-center flex-col pt-5">
     <audio
       ref={audioElementRef}
@@ -913,7 +918,7 @@ return (
           <button
             title="Show Result"
             onClick={() => {
-              router.push(`/result?session_id=${sessionId}&email=${email}`);
+              router.push(`/result`);
             }}
             className="text-white bg-gray-600 border border-green-200 hover:bg-green-500 px-3 py-3 rounded-full text-lg "
           >
@@ -1077,7 +1082,7 @@ return (
       </div>
     </div>
   </div>
-);
-};
 
-export default Experience;
+);
+}
+

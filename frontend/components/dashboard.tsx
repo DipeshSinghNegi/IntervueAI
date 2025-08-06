@@ -39,45 +39,54 @@ const Result = () => {
     };
 
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (!storedUser || fetchedRef.current) return;
+  useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+  if (!storedUser || fetchedRef.current) return;
 
-        try {
-            const user = JSON.parse(storedUser);
-            const userEmail = user.email;
+  let userEmail = "";
 
-            if (!userEmail) {
-                console.warn("No email found in stored user");
-                return;
-            }
+  try {
+    const parsed = JSON.parse(storedUser);
+    if (typeof parsed === "string") {
+      // case: stored as raw email string
+      userEmail = parsed;
+    } else if (typeof parsed === "object" && parsed.email) {
+      // case: stored as { email: "something" }
+      userEmail = parsed.email;
+    }
+  } catch {
+    // fallback if not JSON at all, assume raw string
+    userEmail = storedUser;
+  }
 
-            setEmail(userEmail); // if you still want to store it in state
+  if (!userEmail) {
+    console.warn("⚠️ No valid email found in localStorage");
+    return;
+  }
 
-            fetchedRef.current = true; // ✅ prevent duplicate fetches
+  setEmail(userEmail);
+  fetchedRef.current = true;
 
-          fetch(`${API_BASE_URL}api/v1/show_results`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: userEmail }),
-          })
-                .then((res) => {
-                    if (!res.ok) throw new Error("Server error");
-                    return res.json();
-                })
-                .then((data) => {
-                    console.log("✅ Got result:", data);
-                    setAllSessions(data); // ✅ Store all sessions
-                    updateSessionData(data[0]);
-                })
-                .catch((err) => {
-                    console.error("❌ Fetch failed", err);
-                });
+  console.log("📨 Sending email to show_results API:", userEmail);
 
-        } catch (err) {
-            console.error("Failed to parse stored user", err);
-        }
-    }, []);
+  fetch(`${API_BASE_URL}api/v1/show_results`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: userEmail }),
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Server error");
+      return res.json();
+    })
+    .then((data) => {
+      console.log("✅ Got result:", data);
+      setAllSessions(data);
+      updateSessionData(data[0]);
+    })
+    .catch((err) => {
+      console.error("❌ Fetch failed", err);
+    });
+}, []);
 
 
 

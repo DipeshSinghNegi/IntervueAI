@@ -22,8 +22,24 @@ const Result = () => {
   const [email, setEmail] = useState("");
   const fetchedRef = useRef(false);
   const searchParams = useSearchParams();
-  const session_id = searchParams.get("session_id");
-  const emailParam = searchParams.get("email");
+
+  useEffect(() => {
+  if (typeof window === "undefined" || fetchedRef.current) return;
+  fetchedRef.current = true;
+
+  const localSessionId = localStorage.getItem("session_id");
+  const localEmail = localStorage.getItem("session_email");
+
+  if (localSessionId && localEmail) {
+    setSessionId(localSessionId);
+    setEmail(localEmail);
+    fetchData(localSessionId, localEmail);
+  } else {
+    console.warn("Missing session_id or email in localStorage");
+    router.push("/"); // or show error
+  }
+}, []);
+
   const [userMeta, setUserMeta] = useState<{
     name: string;
     email: string;
@@ -32,22 +48,6 @@ const Result = () => {
   } | null>(null);
 
 
-
-  useEffect(() => {
-    if (typeof window === "undefined" || fetchedRef.current) return;
-    fetchedRef.current = true;
-    const params = new URLSearchParams(window.location.search);
-  
-    console.log("session_id:", session_id, "email:", emailParam);
-
-    if (session_id && emailParam) {
-      setSessionId(session_id);
-      setEmail(emailParam);
-      fetchData(session_id, emailParam);
-    } else {
-      console.warn("Missing session_id or email in URL");
-    }
-  }, []);
 
 
   const fetchData = async (session_id: string, email: string) => {

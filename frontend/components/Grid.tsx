@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BentoGrid, BentoGridItem } from "@/components/ui/BentoGrid";
 import { Input } from "./ui/input";
@@ -12,18 +12,17 @@ import Image from "next/image";
 const Grid = ({
   onSuccess,
   credits,
-  userEmail,
 }: {
   onSuccess: () => void;
   credits: number | null;
-  userEmail: string;
+ 
 }) => {
   const router = useRouter();
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
   const [scenario, setScenario] = useState("General Purpose");
   const [company, setCompany] = useState("");
 
-  const [email, setEmail] = useState(userEmail || "");
+
 
   const [position, setPosition] = useState(""); // 'position' input but backend wants 'role'
   
@@ -44,59 +43,75 @@ const Grid = ({
     }
   };
 
+const [email, setEmail] = useState("");
+
+
 
 
 
  
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-  
-    if (availableCredits <= 0) {
-      showMessage("⚠️ You have no credits left. Please buy more credits to proceed or Sign In");
-      return;
+  if (availableCredits <= 0) {
+    showMessage("⚠️ You have no credits left. Please buy more credits to proceed or Sign In");
+    return;
+  }
+
+  if (!email) {
+    showMessage("❌ Invalid user session. Please login again.");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("scenario", scenario);
+    formData.append("company", company);
+    formData.append("role", position);
+    formData.append("language", language);
+    if (resume) formData.append("resume", resume);
+
+    const res = await fetch(`${API_BASE_URL}api/v1/create_session`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.session_id) {
+      showMessage(`✅ Session created!`);
+      setShowConfetti(true);
+
+      // Save to localStorage
+      localStorage.setItem('session_id', data.session_id);
+      localStorage.setItem('session_email', email);
+
+      setTimeout(() => {
+        setShowConfetti(false);
+        setResultMsg(null);
+        router.push(`/start`); // No email in URL
+      }, 1200);
+    } else {
+      showMessage(`❌ Error: ${data.detail || "Unknown error"}`);
     }
+  } catch (error: any) {
+    showMessage(`❌ Request failed: ${error.message}`);
+  }
+};
 
-    if (!userEmail) {
-      showMessage("❌ Invalid user session. Please login again.");
-      return;
+
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+  if (storedUser) {
+    const parsedUser = JSON.parse(storedUser);
+    if (parsedUser?.email) {
+      setEmail(parsedUser.email);
     }
-
-    try {
-      const formData = new FormData();
-      formData.append("email", userEmail);
-      formData.append("scenario", scenario);
-      formData.append("company", company);
-      formData.append("role", position);
-      formData.append("language", language);
-      if (resume) formData.append("resume", resume);
-
-      const res = await fetch(`${API_BASE_URL}api/v1/create_session`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.session_id) {
-        showMessage(`✅ Session ID: ${data.session_id}`);
-        setShowConfetti(true);
-        setTimeout(() => {
-          setShowConfetti(false);
-          setResultMsg(null);
-          router.push(`/start/${data.session_id}?email=${encodeURIComponent(userEmail)}`);
-        }, 1200);
-      } else {
-        showMessage(`❌ Error: ${data.detail || "Unknown error"}`);
-      }
-    } catch (error: any) {
-      showMessage(`❌ Request failed: ${error.message}`);
-    }
-  };
-
-
+  }
+}, []);
 
 
   return (
@@ -164,9 +179,9 @@ const Grid = ({
                       name="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      required
+                      readOnly
                       placeholder="e.g. Google"
-                      className="bg-[#161b22] border border-gray-700 text-white"
+                      className="bg-[#161b22] border border-gray-700 text-white opacity-60 cursor-not-allowed"
                     />
                   </div>
 
@@ -192,7 +207,7 @@ const Grid = ({
                   </div>
                   {/* NEW: Language Dropdown */}
                   <div className="flex flex-col gap-2">
-                    <Label className="text-sm text-gray-300">Language</Label>
+                    <Label className="text-sm text-gray-300">Difficulty</Label>
                     <select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}

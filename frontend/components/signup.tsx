@@ -25,12 +25,8 @@ export default function Signup() {
         window.google.accounts.id.initialize({
           client_id: '972013465129-qdbier183udsv2p3fdiqlf07n7q3as26.apps.googleusercontent.com',
           callback: (response: any) => {
-            console.log("Google Response:", response);
-             console.log("Credential Token:", response.credential); 
-            console.log('Script loaded. window.google:', window.google);
-              console.log("Sending to backend:", {
-    token: response.credential,
-  });
+
+    
             setTimeout(() => {
             fetch(`${API_BASE_URL}api/v1/gauth`, {
               method: 'POST',
@@ -42,8 +38,7 @@ export default function Signup() {
                   return res.json();
                 })
                 .then((data) => {
-                  console.log("Raw data:", data);
-                  console.log("Response from backend:", data);
+                
                   localStorage.setItem("token", String(data.token));
                   localStorage.setItem("user", JSON.stringify(data));
                   localStorage.setItem("user", JSON.stringify({
@@ -58,7 +53,7 @@ export default function Signup() {
                 })
                 .catch((err) => {
                   console.error('Backend error:', err);
-                  alert('Login failed. Check console for details.');
+                  alert('Login failed. Please try again.');
                 });
             }, 1000);
           }

@@ -136,10 +136,22 @@ useEffect(() => {
         )}
 
         {/* Rest of your main page content */}
-        <h1 className="text-3xl font-bold">Welcome to the main page!</h1>
+        
       </div>
 
-  <div className="absolute sm:top-4 top-2 right-4 sm:right-6 z-[10000]">
+  
+
+
+<div className="w-full flex justify-between items-center px-4 sm:px-6 py-4 absolute top-0 z-[10000]">
+
+  {/* Left Side - Logo */}
+  <div>
+    <span className="!font-bold !text-xl md:!text-2xl text-white">IntervueAI</span>
+  </div>
+
+ <div className="flex items-center gap-4">
+
+
         {!token ? (
           <button
             onClick={() => router.push("/signup")}
@@ -215,21 +227,25 @@ useEffect(() => {
     </div>
                  
   )}
+
+
 </div>
 
 </div>
 
 
         )}
-      </div>
 
+ </div>
+      </div>
+     
       <div className="max-w-7xl w-full">
         <FloatingNav navItems={navItems} />
         <Hero />
         <Grid
           onSuccess={handleInterviewSubmitted}
           credits={credits}
-          userEmail={userInfo?.email || ""}
+         
         />
 
       <div ref={projectRef}>
