@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 type TypewriterProps = {
   text: string;
@@ -7,13 +7,21 @@ type TypewriterProps = {
 
 export const Typewriter = ({ text, speed = 30 }: TypewriterProps) => {
   const [displayedText, setDisplayedText] = useState("");
+  const indexRef = useRef(0);
 
   useEffect(() => {
-    let index = 0;
+    // If text shrinks, reset
+    if (text.length < displayedText.length) {
+      setDisplayedText(text);
+      indexRef.current = text.length;
+      return;
+    }
+
     const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + text.charAt(index));
-      index++;
-      if (index >= text.length) {
+      if (indexRef.current < text.length) {
+        setDisplayedText(text.slice(0, indexRef.current + 1)); // slice instead of +=
+        indexRef.current++;
+      } else {
         clearInterval(interval);
       }
     }, speed);

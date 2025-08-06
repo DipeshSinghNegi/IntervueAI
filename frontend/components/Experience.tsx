@@ -122,26 +122,50 @@ const [aiSpeaking, setAiSpeaking] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
 
-  const resumeMicWhenSafe = () => {
-    const interval = setInterval(() => {
-      if (
-        !aiSpeaking &&
-        recognitionRef.current &&
-        !micRunningRef.current &&
-        pendingMicResumeRef.current
-      ) {
-        try {
+
+  let restartLock = false;
+
+const resumeMicWhenSafe = () => {
+  if (restartLock) return;
+  restartLock = true;
+  
+  const interval = setInterval(() => {
+    if (
+      !aiSpeaking &&
+      recognitionRef.current &&
+      !micRunningRef.current &&
+      pendingMicResumeRef.current
+    ) {
+      try {
+        // Line 149 - Add state validation before start()
+        if (recognitionRef.current.readyState !== 'running') {
           recognitionRef.current.start();
           micRunningRef.current = true;
           pendingMicResumeRef.current = false;
           console.log("🎤 Mic resumed safely after AI finished.");
-        } catch (err) {
-          console.warn("Mic restart failed:", err);
+        } else {
+          // Recognition is already running, just sync flags
+          micRunningRef.current = true;
+          pendingMicResumeRef.current = false;
+          console.log("🎤 Recognition already running - synced flags");
         }
-        clearInterval(interval);
+      } catch (err) {
+         const errorMessage = err instanceof Error ? err.message : String(err);
+  const errorName = err instanceof Error ? err.name : 'UnknownError';
+        if (errorName === 'InvalidStateError' && errorMessage.includes('already started')) {
+    micRunningRef.current = true;
+    pendingMicResumeRef.current = false;
+    console.log("🎤 Recognition was already running - state corrected");
+  } else {
+    console.warn("Mic restart failed:", errorMessage);
+  }
       }
-    }, 400);
-  };
+      clearInterval(interval);
+      restartLock = false;
+    }
+  }, 400);
+};
+
 
 //new
 useEffect(() => {
@@ -371,27 +395,27 @@ useEffect(() => {
  
         if (onComplete) onComplete();
 
-       
-          setAiSpeaking(false);
- 
-          pendingMicResumeRef.current = true;
 
-          setTimeout(() => {
-            if (
-              !aiSpeaking &&
-              pendingMicResumeRef.current &&
-              recognitionRef.current &&
-              !micRunningRef.current 
-            ) {
-              try {
-                recognitionRef.current.start();
-                pendingMicResumeRef.current = false;
-                console.log("🎤 Mic restarted after AI finished.");
-              } catch (err) {
-                console.warn("Mic restart failed:", err);
-              }
-            }
-          }, 400);
+         setAiSpeaking(false);
+  pendingMicResumeRef.current = true;
+  setTimeout(() => {
+    if (
+      activeAudioSourcesRef.current === 0 &&
+      !aiSpeaking &&
+      pendingMicResumeRef.current &&
+      recognitionRef.current &&
+      !micRunningRef.current 
+    ) {
+      try {
+        recognitionRef.current.start();
+        micRunningRef.current = true;  
+        pendingMicResumeRef.current = false;
+        console.log("🎤 Mic restarted after AI finished.");
+      } catch (err) {
+        console.warn("Mic restart failed:", err);
+      }
+    }
+  }, 500);
        
       };
     } catch (err) {
@@ -431,6 +455,18 @@ useEffect(() => {
  
   const streamAIReply = async (apiUrl: string, userInput: string) => {
   
+// STOP MIC as soon as AI reply starts
+  if (recognitionRef.current && micRunningRef.current) {
+    try {
+      recognitionRef.current.stop();
+      micRunningRef.current = false;
+      console.log('🔇 Mic stopped - AI about to speak');
+    } catch (err) {
+      // (safe to ignore)
+    }
+  }
+  setAiStreaming(true);
+
     if (!sessionId || !userInput || sessionEndedRef.current) {
       console.warn("Skipping stream – session ended or invalid input");
       return;
@@ -740,6 +776,10 @@ interface MySpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
 }
 recognition.onresult = async (event: MySpeechRecognitionEvent) => {
+    if (!micRunningRef.current || aiSpeaking || activeAudioSourcesRef.current > 0) {
+    console.log("⛔ Ignored transcript during AI speech");
+    return;
+  }
   let interimTranscript = "";
   for (let i = event.resultIndex; i < event.results.length; ++i) {
     if (event.results[i].isFinal) {
@@ -751,7 +791,13 @@ recognition.onresult = async (event: MySpeechRecognitionEvent) => {
 
   setLiveInterim(interimTranscript);
 
-  if (finalTranscriptBuffer && interviewStarted && !isStreamingRef.current && !aiSpeaking && !sessionEnded) {
+  if (finalTranscriptBuffer &&
+  interviewStarted &&
+  !isStreamingRef.current &&
+  !sessionEnded &&
+  micRunningRef.current &&
+  activeAudioSourcesRef.current === 0 &&
+  !aiSpeaking) {
     // Clear previous timer
     if (finalTranscriptTimer) clearTimeout(finalTranscriptTimer);
 
@@ -929,9 +975,9 @@ return (
     )}
     <div className="w-full px-9 pl-14 sm:px-6  pb-4 flex flex-col sm:flex-row items-center justify-between">
       <div className="flex items-center md:gap-5 gap-2 md:ml-7 flex-wrap">
-        <span className="!font-bold !text-2xl md:!text-3xl  text-white">IntervueAI</span>
-        <span className="ml-2 text-gray-400 !text-sm border border-gray-700 bg-[#222444] rounded-full px-3 py-0.5">English</span>
-        <span className="ml-2 text-green-400 !text-sm border border-gray-700 bg-[#18271A] rounded-full px-3 py-0.5">Hiring</span>
+        <span className="!font-bold !text-xl md:!text-2xl  text-white">IntervueAI</span>
+        <span className="ml-2 text-gray-400 !text-xs border border-gray-700 bg-[#222444] rounded-full px-3 py-0.5">English</span>
+        <span className="ml-2 text-green-400 !text-xs border border-gray-700 bg-[#18271A] rounded-full px-3 py-0.5">Hiring</span>
       </div>
       <div className="flex items-center gap-3 mt-3 sm:mt-0">
         <span className="text-slate-200/90 mr-1 md:!text-lg !text-sm">Interview Time</span>
@@ -942,17 +988,17 @@ return (
       key={frontendExp?.id}
       duration={15000}
       borderRadius="1.75rem"
-      className="text-black dark:text-white  border-neutral-200 dark:border-slate-800 w-full max-w-none max-h-full  min-h-[69vh] flex  "
+      className="text-black dark:text-white  border-neutral-200 dark:border-slate-800 w-full max-w-none max-h-full  min-h-[50vh] flex  "
      containerClassName="w-full max-w-none"
     >
-      <div  className="flex flex-row w-full max-w-full max-h-full   md:p-10 min-h-[69vh]
+      <div  className="flex flex-row w-full max-w-full max-h-full   min-h-[69vh]
          h-full gap-7 md:gap-8     ">
-        <div className="relative w-full min-w-[50vw] p-9 my-10 sm:my-0 max-w-[50vw] md:flex-1  rounded-3xl bg-[#0c1327] flex flex-col shadow-md mb-4 md:mb-0">
-          <div className="flex-1 w-full min-w-[50vw]  min-h-[200px] md:min-h-[340px] flex items-center justify-center bg-black relative ">
+        <div className="relative w-full min-w-[50vw] p-9 my-5 sm:my-0 max-w-[50vw] md:flex-1  rounded-3xl bg-[#0c1327] flex flex-col shadow-md mb-4 md:mb-0">
+          <div className="relative flex-1 w-full min-h-[200px] justify-center items-center sm:aspect-video max-w-[50vw] md:flex-1 rounded-3xl bg-black flex flex-col shadow-md mb-4 md:mb-0 ">
             {videoOn ? ( 
-              <Webcam audio={false} mirrored className="w-full h-full object-cover transition-all duration-300 rounded-2xl" />
+              <Webcam audio={false} mirrored className="w-full h-full object-cover rounded-2xl transition-all duration-300" />
             ) : (
-              <div className="flex items-center justify-center w-full h-full text-white !text-2xl">📷 Video Off</div>
+              <div className="flex items-center justify-center w-full h-full text-white text-2xl">📷 Video Off</div>
             )}
             <div className="absolute top-3 right-3 bg-red-500/90 !text-sm md:!text-lg text-white px-3 py-1 rounded-full shadow font-bold select-none">Rec</div>
             <div className="absolute top-3 left-3 bg-black/30 text-white text-xs rounded px-3 py-1 select-none">{frontendExp?.title ?? "You"}</div>
@@ -975,7 +1021,7 @@ return (
                 aria-label={muted ? "Unmute" : "Mute"}
                 disabled={sessionEnded}
               >
-                {muted ? <MicOff className="md:w-6 h-3 w-3 md:h-6 text-gray-400" /> : <Mic className="w-9 h-9 text-green-400" />}
+                {muted ? <MicOff className="md:w-6 h-3 w-3 md:h-6 text-gray-400" /> : <Mic className="md:w-6 md:h-6 h-3 w-3 text-green-400" />}
               </button>
               <button
                 onClick={() => setVideoOn(!videoOn)}
@@ -984,7 +1030,7 @@ return (
                 aria-label={videoOn ? "Turn off video" : "Turn on video"}
                 disabled={sessionEnded}
               >
-                {videoOn ? <Video className="md:w-6 md:h-6 h-3 w-3 text-blue-400" /> : <VideoOff className="w-9 h-9 text-gray-400" />}
+                {videoOn ? <Video className="md:w-6 md:h-6 h-3 w-3 text-blue-400" /> : <VideoOff className="w-3 h-3 md:h-6 md:w-6 text-gray-400" />}
               </button>
             </div>
           </div>
@@ -1046,8 +1092,8 @@ return (
             </div>
           </div>
           <div className="bg-green-50/10 border border-green-700 rounded-xl flex flex-col sm:flex-row gap-1 sm:gap-4 items-center shadow min-h-[100px] h-[35%] justify-center px-3 py-1">
-            <span className="text-green-400 font-semibold !text-lg md:!text-2xl ">AI Interviewer</span>
-            <span className="text-base md:text-lg bg-green-100/30 rounded-full px-3 md:px-5 py-1 md:py-2 shadow-inner font-bold text-green-900">A</span>
+            <span className="text-green-400 font-semibold !text-lg md:!text-2xl ">IntervueAI</span>
+
           </div>
         </div>
       </div>
@@ -1073,7 +1119,7 @@ return (
         ) : (
           <button
             onClick={handleLeave}
-            className="md:w-12 md:h-12 mt-4 flex items-center justify-center rounded-full bg-red-700/10 hover:bg-red-700/30 shadow hover:scale-105 transition text-red-400 border border-red-800"
+            className="md:w-12 md:h-12 w-8 h-8 mt-4 flex items-center justify-center rounded-full bg-red-700/10 hover:bg-red-700/30 shadow hover:scale-105 transition text-red-400 border border-red-800"
             title="Leave Interview"
             aria-label="Leave Interview"
             disabled={sessionEnded}
@@ -1085,4 +1131,3 @@ return (
 
 );
 }
-
