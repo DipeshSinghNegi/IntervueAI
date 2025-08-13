@@ -35,6 +35,7 @@ const router = useRouter();
     projectRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+
   useEffect(() => {
     const shouldShow = localStorage.getItem("showLoginSuccess");
     const message = localStorage.getItem("loginSuccessMessage");

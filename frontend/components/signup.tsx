@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState} from 'react';
 import { BentoGrid, BentoGridItem } from '@/components/ui/BentoGrid';
 import { UserPlus, Sparkles, Shield, ArrowRight, ArrowUp } from 'lucide-react';
 
@@ -12,8 +12,10 @@ declare global {
 }
 
 export default function Signup() {
+     const [errorMessage, setErrorMessage] = useState("");
+const [showError, setShowError] = useState(false);
   useEffect(() => {
-    
+ 
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -52,9 +54,12 @@ export default function Signup() {
                   window.location.href = "/";
                 })
                 .catch((err) => {
-                  console.error('Backend error:', err);
-                  alert('Login failed. Please try again.');
-                });
+  console.error('Backend error:', err);
+  setErrorMessage("Login failed. Please try again.");
+  setShowError(true);
+  setTimeout(() => setShowError(false), 4000); // auto hide after 4s
+});
+
             }, 1000);
           }
         });
@@ -72,6 +77,13 @@ export default function Signup() {
   }, []);
 
   return (
+     <>
+    {showError && (
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-8 py-3 rounded-lg shadow-lg transition-all duration-500 animate-slide-down z-[9999]">
+        {errorMessage}
+      </div>
+    )}
+    
     <section id="Form" className="relative max-h-screen bg-white-100  overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
@@ -162,8 +174,27 @@ export default function Signup() {
         .animation-delay-4000 {
           animation-delay: 4s;
         }
+
+         @keyframes slide-down {
+    from {
+      transform: translate(-50%, -100%);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+  }
+  .animate-slide-down {
+    animation: slide-down 0.3s ease-out;
+  }
       `}</style>
     </section>
-  );
+
+
+  </>
+);
+
+ 
 }
 
