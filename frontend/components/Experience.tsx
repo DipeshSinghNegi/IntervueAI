@@ -775,49 +775,119 @@ interface MySpeechRecognitionEvent extends Event {
   resultIndex: number;
   results: SpeechRecognitionResultList;
 }
-recognition.onresult = async (event: MySpeechRecognitionEvent) => {
-    if (!micRunningRef.current || aiSpeaking || activeAudioSourcesRef.current > 0) {
-    console.log("⛔ Ignored transcript during AI speech");
-    return;
-  }
-  let interimTranscript = "";
+
+
+
+
+// Settings — tweak to your speech style
+const VOLUME_THRESHOLD: number = 0.02;       // Sensitivity — higher = less sensitive
+const SILENCE_MS_REQUIRED: number = 2500;    // How long silence must last before sending
+const INACTIVITY_BEFORE_SEND: number = 6000; // Max wait since last word
+
+let lastWordTime: number = 0;
+let silenceStart: number | null = null;
+let checkingSilence: boolean = false;
+
+
+recognition.onresult = (event: MySpeechRecognitionEvent) => {
+  if (!micRunningRef.current || aiSpeaking || activeAudioSourcesRef.current > 0) return;
+
+  let interim = "";
   for (let i = event.resultIndex; i < event.results.length; ++i) {
+    const text = event.results[i][0].transcript;
     if (event.results[i].isFinal) {
-      finalTranscriptBuffer += event.results[i][0].transcript;
+      finalTranscriptBuffer += text + " ";
+      lastWordTime = Date.now();
     } else {
-      interimTranscript += event.results[i][0].transcript;
+      interim += text;
     }
   }
 
-  setLiveInterim(interimTranscript);
+  setLiveInterim(interim);
 
-  if (finalTranscriptBuffer &&
-  interviewStarted &&
-  !isStreamingRef.current &&
-  !sessionEnded &&
-  micRunningRef.current &&
-  activeAudioSourcesRef.current === 0 &&
-  !aiSpeaking) {
-    // Clear previous timer
-    if (finalTranscriptTimer) clearTimeout(finalTranscriptTimer);
-
-    // Set a new debounce timer
-    finalTranscriptTimer = setTimeout(async () => {
-      if (!finalTranscriptBuffer.trim()) return;
-
-      const toSend = finalTranscriptBuffer.trim();
-      finalTranscriptBuffer = ""; 
-
-      try {
-        recognitionRef.current?.stop(); // stop mic
-        setMessages((prev) => [...prev, { from: "user", text: toSend }]);
-        await streamAIReply(`${API_BASE_URL}api/v1/continue_interview`, toSend);
-      } catch (err) {
-        console.warn("Error sending transcript:", err);
-      }
-    }, 1500); 
+  // Start monitoring silence when you start speaking
+  if (!checkingSilence) {
+    checkingSilence = true;
+    requestAnimationFrame(checkMicSilence);
   }
 };
+
+function checkMicSilence() {
+  if (!analyserRef.current) return;
+
+  const dataArray = new Uint8Array(analyserRef.current.fftSize);
+  analyserRef.current.getByteTimeDomainData(dataArray);
+
+  let sumSquares = 0;
+  for (let i = 0; i < dataArray.length; i++) {
+    const normalized = (dataArray[i] - 128) / 128;
+    sumSquares += normalized * normalized;
+  }
+  const volume = Math.sqrt(sumSquares / dataArray.length);
+
+  const now = Date.now();
+  const isQuiet = volume < VOLUME_THRESHOLD;
+
+  if (isQuiet) {
+    if (!silenceStart) silenceStart = now;
+    const silenceDuration = now - silenceStart;
+
+    // Send only if silence lasts long enough AND no recent words
+    if (silenceDuration >= SILENCE_MS_REQUIRED && now - lastWordTime >= SILENCE_MS_REQUIRED) {
+      sendFullAnswer();
+      checkingSilence = false;
+      return;
+    }
+  } else {
+    silenceStart = null;
+  }
+
+  // Also send if no activity for too long
+  if (now - lastWordTime >= INACTIVITY_BEFORE_SEND && finalTranscriptBuffer.trim()) {
+    sendFullAnswer();
+    checkingSilence = false;
+    return;
+  }
+
+  requestAnimationFrame(checkMicSilence);
+}
+
+async function sendFullAnswer() {
+  const toSend = finalTranscriptBuffer.trim();
+  if (!toSend) return;
+
+  console.log("✅ Sending full answer:", toSend);
+  finalTranscriptBuffer = "";
+  setLiveInterim("");
+
+  try {
+    recognitionRef.current?.stop();
+    setMessages(prev => [...prev, { from: "user", text: toSend }]);
+    await streamAIReply(`${API_BASE_URL}api/v1/continue_interview`, toSend);
+
+    // When AI finishes talking — restart mic
+    if (micRunningRef.current) {
+      recognitionRef.current?.start();
+      console.log("🎤 Mic restarted for next turn");
+    }
+
+    lastWordTime = 0;
+    silenceStart = null;
+  } catch (err) {
+    console.warn("Error sending transcript:", err);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
