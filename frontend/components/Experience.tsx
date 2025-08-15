@@ -142,13 +142,13 @@ const resumeMicWhenSafe = () => {
           recognitionRef.current.start();
           micRunningRef.current = true;
           pendingMicResumeRef.current = false;
-          setAiSpeaking(false);
+ 
           console.log("🎤 Mic resumed safely after AI finished.");
         } else {
           // Recognition is already running, just sync flags
           micRunningRef.current = true;
           pendingMicResumeRef.current = false;
-                 setAiSpeaking(false); 
+                
           console.log("🎤 Recognition already running - synced flags");
         }
       } catch (err) {
@@ -370,7 +370,7 @@ useEffect(() => {
     
 
           if (activeAudioSourcesRef.current === 0) {
-            // setAiSpeaking(false);
+            setAiSpeaking(false);
      
 
             const toAck = Array.from(bufferedChunkNumsRef.current).filter((n) =>
@@ -398,7 +398,7 @@ useEffect(() => {
         if (onComplete) onComplete();
 
 
-        //  setAiSpeaking(false);
+
   pendingMicResumeRef.current = true;
   setTimeout(() => {
     if (
@@ -412,7 +412,7 @@ useEffect(() => {
         recognitionRef.current.start();
         micRunningRef.current = true;  
         pendingMicResumeRef.current = false;
-               setAiSpeaking(false);
+              
         console.log("🎤 Mic restarted after AI finished.");
       } catch (err) {
         console.warn("Mic restart failed:", err);
