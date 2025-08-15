@@ -58,7 +58,7 @@ export default function Experience({ sessionId, email }: ExperienceProps) {
 
   const searchParams = useSearchParams();
 
-
+let longPauseCount = 0;
 
   const currentAIChunkNumsRef = useRef<number | null>(null); 
 
@@ -776,118 +776,202 @@ interface MySpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
 }
 
+// --- existing ---
+let speechTimeout: ReturnType<typeof setTimeout> | null = null;   // soft deadline
+let confirmTimeout: ReturnType<typeof setTimeout> | null = null;  // short confirm
+let awaitingConfirm = false;
 
+let accumulatedTranscript = "";
+let lastSpeechTime = Date.now();
 
+const DEADLINE_MS = 7500;  // wait longer to allow natural pauses
+const CONFIRM_MS = 1800;   // confirm window
+const MIN_WORDS  = 5;
 
-// Settings — tweak to your speech style
-const VOLUME_THRESHOLD: number = 0.02;       // Sensitivity — higher = less sensitive
-const SILENCE_MS_REQUIRED: number = 2500;    // How long silence must last before sending
-const INACTIVITY_BEFORE_SEND: number = 6000; // Max wait since last word
+// NEW: keep latest interim outside closures so timeouts read fresh text
+let interimCache = "";
 
-let lastWordTime: number = 0;
-let silenceStart: number | null = null;
-let checkingSilence: boolean = false;
+// --- NEW helpers ---
+function armSoftDeadline() {
+  if (speechTimeout) clearTimeout(speechTimeout);
+  speechTimeout = setTimeout(openConfirmStage, DEADLINE_MS);
+}
 
+function cancelConfirmStage() {
+  if (!awaitingConfirm) return;
+  awaitingConfirm = false;
+  if (confirmTimeout) { clearTimeout(confirmTimeout); confirmTimeout = null; }
+}
 
-recognition.onresult = (event: MySpeechRecognitionEvent) => {
-  if (!micRunningRef.current || aiSpeaking || activeAudioSourcesRef.current > 0) return;
+function openConfirmStage() {
+  awaitingConfirm = true;
+  confirmTimeout = setTimeout(checkAndMaybeSend, CONFIRM_MS);
+}
 
-  let interim = "";
-  for (let i = event.resultIndex; i < event.results.length; ++i) {
-    const text = event.results[i][0].transcript;
-    if (event.results[i].isFinal) {
-      finalTranscriptBuffer += text + " ";
-      lastWordTime = Date.now();
-    } else {
-      interim += text;
-    }
-  }
+async function checkAndMaybeSend() {
+  awaitingConfirm = false;
 
-  setLiveInterim(interim);
-
-  // Start monitoring silence when you start speaking
-  if (!checkingSilence) {
-    checkingSilence = true;
-    requestAnimationFrame(checkMicSilence);
-  }
-};
-
-function checkMicSilence() {
-  if (!analyserRef.current) return;
-
-  const dataArray = new Uint8Array(analyserRef.current.fftSize);
-  analyserRef.current.getByteTimeDomainData(dataArray);
-
-  let sumSquares = 0;
-  for (let i = 0; i < dataArray.length; i++) {
-    const normalized = (dataArray[i] - 128) / 128;
-    sumSquares += normalized * normalized;
-  }
-  const volume = Math.sqrt(sumSquares / dataArray.length);
-
-  const now = Date.now();
-  const isQuiet = volume < VOLUME_THRESHOLD;
-
-  if (isQuiet) {
-    if (!silenceStart) silenceStart = now;
-    const silenceDuration = now - silenceStart;
-
-    // Send only if silence lasts long enough AND no recent words
-    if (silenceDuration >= SILENCE_MS_REQUIRED && now - lastWordTime >= SILENCE_MS_REQUIRED) {
-      sendFullAnswer();
-      checkingSilence = false;
-      return;
-    }
-  } else {
-    silenceStart = null;
-  }
-
-  // Also send if no activity for too long
-  if (now - lastWordTime >= INACTIVITY_BEFORE_SEND && finalTranscriptBuffer.trim()) {
-    sendFullAnswer();
-    checkingSilence = false;
+  // Critical: only proceed if it’s actually been silent long enough right now
+  const silentFor = Date.now() - lastSpeechTime;
+  if (silentFor < DEADLINE_MS) {
+    // We detected recent speech (maybe results were slow). Push the deadline out.
+    armSoftDeadline();
     return;
   }
 
-  requestAnimationFrame(checkMicSilence);
-}
+  if (!micRunningRef.current || aiSpeaking) return;
 
-async function sendFullAnswer() {
-  const toSend = finalTranscriptBuffer.trim();
-  if (!toSend) return;
+  const fullTranscript = (accumulatedTranscript + interimCache).trim();
+  const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+  if (wordCount < MIN_WORDS) {
+    // Too short—wait again
+    armSoftDeadline();
+    return;
+  }
 
-  console.log("✅ Sending full answer:", toSend);
-  finalTranscriptBuffer = "";
+  // Commit + send
+  accumulatedTranscript = "";
+  interimCache = "";
   setLiveInterim("");
 
-  try {
-    recognitionRef.current?.stop();
-    setMessages(prev => [...prev, { from: "user", text: toSend }]);
-    await streamAIReply(`${API_BASE_URL}api/v1/continue_interview`, toSend);
-
-    // When AI finishes talking — restart mic
-    if (micRunningRef.current) {
-      recognitionRef.current?.start();
-      console.log("🎤 Mic restarted for next turn");
-    }
-
-    lastWordTime = 0;
-    silenceStart = null;
-  } catch (err) {
-    console.warn("Error sending transcript:", err);
-  }
+  recognitionRef.current?.stop();
+  setMessages(prev => [...prev, { from: "user", text: fullTranscript }]);
+  await streamAIReply(`${API_BASE_URL}api/v1/continue_interview`, fullTranscript);
 }
 
+// --- your existing onresult, with 3 small changes ---
+recognition.onresult = async (event: MySpeechRecognitionEvent) => {
+  if (!micRunningRef.current || aiSpeaking) return;
 
+  let interimTranscript = "";
 
+  for (let i = event.resultIndex; i < event.results.length; ++i) {
+    const transcript = event.results[i][0].transcript;
 
+    // 1) refresh lastSpeechTime on any result activity
+    lastSpeechTime = Date.now();
 
+    if (event.results[i].isFinal) {
+      accumulatedTranscript += transcript + " ";
+    } else {
+      interimTranscript += transcript;
+    }
+  }
 
+  // 2) cache interim globally for timeouts
+  interimCache = interimTranscript;
+  setLiveInterim(interimTranscript);
 
+  // 3) cancel confirm if we were about to send, then push the deadline out
+  cancelConfirmStage();
+  armSoftDeadline();
+};
 
+// --- NEW: cancel/extend timers the moment speech resumes (faster than onresult) ---
+recognition.onspeechstart = () => {
+  if (!micRunningRef.current) return;
+  lastSpeechTime = Date.now();
+  cancelConfirmStage();
+  armSoftDeadline();
+};
 
+recognition.onsoundstart = () => {
+  if (!micRunningRef.current) return;
+  lastSpeechTime = Date.now();
+  cancelConfirmStage();
+  armSoftDeadline();
+};
 
+// Optional: if you want, mark the start of silence (not required)
+// recognition.onsoundend = () => { /* could set a flag if you need */ };
 
+// Cleanup when mic stops/unmounts
+function clearAllTimers() {
+  if (speechTimeout) { clearTimeout(speechTimeout); speechTimeout = null; }
+  if (confirmTimeout) { clearTimeout(confirmTimeout); confirmTimeout = null; }
+  awaitingConfirm = false;
+}
+
+recognition.onresult = async (event: MySpeechRecognitionEvent) => {
+  // IMPORTANT: don’t gate on activeAudioSourcesRef here
+  if (!micRunningRef.current || aiSpeaking) return;
+
+  let interimTranscript = "";
+  for (let i = event.resultIndex; i < event.results.length; ++i) {
+    const transcript = event.results[i][0].transcript;
+    if (event.results[i].isFinal) {
+      accumulatedTranscript += transcript + " ";
+    } else {
+      interimTranscript += transcript;
+    }
+  }
+
+  interimCache = interimTranscript;      // keep snapshot for timeouts
+  setLiveInterim(interimTranscript);
+
+  // If we were about to send but the user resumed, cancel the confirm stage
+  if (awaitingConfirm) {
+    awaitingConfirm = false;
+    if (confirmTimeout) { clearTimeout(confirmTimeout); confirmTimeout = null; }
+  }
+
+  // Reset the soft deadline on any new speech
+  if (speechTimeout) clearTimeout(speechTimeout);
+  speechTimeout = setTimeout(() => {
+    // Stage 1: we think the user paused. Don’t send yet—wait a short confirm window.
+    awaitingConfirm = true;
+
+    confirmTimeout = setTimeout(async () => {
+      awaitingConfirm = false;
+      if (!micRunningRef.current || aiSpeaking) return;
+
+      const fullTranscript = (accumulatedTranscript + interimCache).trim();
+      const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+      if (wordCount < MIN_WORDS) return;
+
+      // One confirmed long pause
+      longPauseCount += 1;
+
+      if (longPauseCount < 2) {
+        // Wait for another long pause: re-arm deadlines
+        if (speechTimeout) clearTimeout(speechTimeout);
+        speechTimeout = setTimeout(() => {
+          awaitingConfirm = true;
+          confirmTimeout = setTimeout(async () => {
+            awaitingConfirm = false;
+            if (!micRunningRef.current || aiSpeaking) return;
+
+            const fullTranscript2 = (accumulatedTranscript + interimCache).trim();
+            const wordCount2 = fullTranscript2.split(/\s+/).filter(Boolean).length;
+            if (wordCount2 < MIN_WORDS) return;
+
+            // Second confirmed long pause → send
+            longPauseCount = 0;
+            accumulatedTranscript = "";
+            interimCache = "";
+            setLiveInterim("");
+
+            recognitionRef.current?.stop();
+            setMessages(prev => [...prev, { from: "user", text: fullTranscript2 }]);
+            await streamAIReply(`${API_BASE_URL}api/v1/continue_interview`, fullTranscript2);
+          }, CONFIRM_MS);
+        }, DEADLINE_MS);
+
+        return; // don’t send yet
+      }
+
+      // Second confirmed long pause → send
+      longPauseCount = 0;
+      accumulatedTranscript = "";
+      interimCache = "";
+      setLiveInterim("");
+
+      recognitionRef.current?.stop();
+      setMessages(prev => [...prev, { from: "user", text: fullTranscript }]);
+      await streamAIReply(`${API_BASE_URL}api/v1/continue_interview`, fullTranscript);
+    }, CONFIRM_MS);
+  }, DEADLINE_MS);
+};
 
 
 
@@ -1163,8 +1247,7 @@ return (
           </div>
           <div className="bg-green-50/10 border border-green-700 rounded-xl flex flex-col sm:flex-row gap-1 sm:gap-4 items-center shadow min-h-[100px] h-[35%] justify-center px-3 py-1">
             <span className="text-green-400 font-semibold !text-lg md:!text-2xl ">IntervueAI</span>
-
-          </div>
+</div>
         </div>
       </div>
     </Button>
