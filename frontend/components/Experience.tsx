@@ -786,7 +786,7 @@ let lastSpeechTime = Date.now();
 
 const DEADLINE_MS = 7500;  // wait longer to allow natural pauses
 const CONFIRM_MS = 1800;   // confirm window
-const MIN_WORDS  = 5;
+const MIN_WORDS  = 1;
 
 // NEW: keep latest interim outside closures so timeouts read fresh text
 let interimCache = "";
