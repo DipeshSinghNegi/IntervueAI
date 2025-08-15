@@ -1245,8 +1245,42 @@ return (
               <div ref={chatEndRef}></div>
             </div>
           </div>
-          <div className="bg-green-50/10 border border-green-700 rounded-xl flex flex-col sm:flex-row gap-1 sm:gap-4 items-center shadow min-h-[100px] h-[35%] justify-center px-3 py-1">
-            <span className="text-green-400 font-semibold !text-lg md:!text-2xl ">IntervueAI</span>
+     <div
+  className={[
+    "relative rounded-xl shadow min-h-[100px] h-[35%] px-3 py-2",
+    "flex items-center justify-center border transition-all duration-300",
+    aiSpeaking
+      ? "bg-emerald-900/10 border-emerald-600 ring-1 ring-emerald-400/40 shadow-[0_0_16px_rgba(16,185,129,0.28)]"
+      : "bg-green-50/10 border-green-700"
+  ].join(" ")}
+  aria-live="polite"
+  aria-atomic="true"
+>
+  {/* Centered title */}
+  <div className="flex items-center gap-2">
+    <Bot className="w-5 h-5 text-emerald-300" />
+    <span className="text-emerald-300 font-semibold !text-lg md:!text-2xl">
+      IntervueAI
+    </span>
+  </div>
+
+  {/* Bottom-right speaking pill */}
+  <div
+    className={[
+      "absolute bottom-2 right-2",
+      "transition-all duration-300",
+      aiSpeaking ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none"
+    ].join(" ")}
+  >
+    <div className="bg-emerald-950/90 border border-emerald-700 text-emerald-300 rounded-full px-3 py-1 shadow flex items-center gap-2">
+     
+      <span className="flex gap-1 ml-1">
+        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "200ms" }} />
+        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "400ms" }} />
+      </span>
+    </div>
+  </div>
 </div>
         </div>
       </div>
