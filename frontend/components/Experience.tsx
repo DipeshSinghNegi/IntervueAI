@@ -419,6 +419,7 @@ useEffect(() => {
       }
     }
   }, 500);
+  
        
       };
     } catch (err) {
@@ -787,8 +788,8 @@ let awaitingConfirm = false;
 let accumulatedTranscript = "";
 let lastSpeechTime = Date.now();
 
-const DEADLINE_MS = 7500;  // wait longer to allow natural pauses
-const CONFIRM_MS = 1800;   // confirm window
+const DEADLINE_MS = 4000;  // wait longer to allow natural pauses
+const CONFIRM_MS = 1000;   // confirm window
 const MIN_WORDS  = 1;
 
 // NEW: keep latest interim outside closures so timeouts read fresh text
@@ -932,36 +933,38 @@ recognition.onresult = async (event: MySpeechRecognitionEvent) => {
       const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
       if (wordCount < MIN_WORDS) return;
 
-      // One confirmed long pause
-      longPauseCount += 1;
+  longPauseCount += 1;
 
-      if (longPauseCount < 2) {
-        // Wait for another long pause: re-arm deadlines
-        if (speechTimeout) clearTimeout(speechTimeout);
-        speechTimeout = setTimeout(() => {
-          awaitingConfirm = true;
-          confirmTimeout = setTimeout(async () => {
-            awaitingConfirm = false;
-            if (!micRunningRef.current || aiSpeaking) return;
+if (longPauseCount < 2) {
+  // 👉 Instead of waiting for 2nd full DEADLINE, 
+  // give the user a grace period to continue speaking
+  if (speechTimeout) clearTimeout(speechTimeout);
 
-            const fullTranscript2 = (accumulatedTranscript + interimCache).trim();
-            const wordCount2 = fullTranscript2.split(/\s+/).filter(Boolean).length;
-            if (wordCount2 < MIN_WORDS) return;
+  speechTimeout = setTimeout(() => {
+    awaitingConfirm = true;
 
-            // Second confirmed long pause → send
-            longPauseCount = 0;
-            accumulatedTranscript = "";
-            interimCache = "";
-            setLiveInterim("");
+    confirmTimeout = setTimeout(async () => {
+      awaitingConfirm = false;
+      if (!micRunningRef.current || aiSpeaking) return;
 
-            recognitionRef.current?.stop();
-            setMessages(prev => [...prev, { from: "user", text: fullTranscript2 }]);
-            await streamAIReply(`${API_BASE_URL}api/v1/continue_interview`, fullTranscript2);
-          }, CONFIRM_MS);
-        }, DEADLINE_MS);
+      const fullTranscript = (accumulatedTranscript + interimCache).trim();
+      const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+      if (wordCount < MIN_WORDS) return;
 
-        return; // don’t send yet
-      }
+      // ✅ After grace pause → commit once
+      longPauseCount = 0;
+      accumulatedTranscript = "";
+      interimCache = "";
+      setLiveInterim("");
+
+      recognitionRef.current?.stop();
+      setMessages(prev => [...prev, { from: "user", text: fullTranscript }]);
+      await streamAIReply(`${API_BASE_URL}api/v1/continue_interview`, fullTranscript);
+    }, CONFIRM_MS);
+  }, DEADLINE_MS);
+
+  return; // don’t send yet (let them continue if they resume)
+}
 
       // Second confirmed long pause → send
       longPauseCount = 0;
