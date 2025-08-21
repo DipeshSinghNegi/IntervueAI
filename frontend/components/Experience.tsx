@@ -128,8 +128,8 @@ const [aiSpeaking, setAiSpeaking] = useState(false);
 const resumeMicWhenSafe = () => {
   if (restartLock) return;
   restartLock = true;
-
-  const tryResume = () => {
+  
+  const interval = setInterval(() => {
     if (
       !aiSpeaking &&
       recognitionRef.current &&
@@ -137,33 +137,36 @@ const resumeMicWhenSafe = () => {
       pendingMicResumeRef.current
     ) {
       try {
-        recognitionRef.current.start();
-        micRunningRef.current = true;
-        pendingMicResumeRef.current = false;
-        console.log("🎤 Mic resumed immediately after AI finished.");
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        const errorName = err instanceof Error ? err.name : "UnknownError";
-
-        if (errorName === "InvalidStateError" && errorMessage.includes("already started")) {
+        // Line 149 - Add state validation before start()
+        if (recognitionRef.current.readyState !== 'running') {
+          recognitionRef.current.start();
           micRunningRef.current = true;
           pendingMicResumeRef.current = false;
-          console.log("🎤 Recognition was already running - state corrected");
+ 
+          console.log("🎤 Mic resumed safely after AI finished.");
         } else {
-          console.warn("Mic restart failed, retrying in 300ms:", errorMessage);
-          // Retry quickly instead of waiting for a fixed 400ms tick
-          setTimeout(tryResume, 300);
+          // Recognition is already running, just sync flags
+          micRunningRef.current = true;
+          pendingMicResumeRef.current = false;
+                
+          console.log("🎤 Recognition already running - synced flags");
         }
+      } catch (err) {
+         const errorMessage = err instanceof Error ? err.message : String(err);
+  const errorName = err instanceof Error ? err.name : 'UnknownError';
+        if (errorName === 'InvalidStateError' && errorMessage.includes('already started')) {
+    micRunningRef.current = true;
+    pendingMicResumeRef.current = false;
+    console.log("🎤 Recognition was already running - state corrected");
+  } else {
+    console.warn("Mic restart failed:", errorMessage);
+  }
       }
-      restartLock = false;
-    } else {
+      clearInterval(interval);
       restartLock = false;
     }
-  };
-
-  tryResume(); // 🚀 attempt immediately
+  }, 400);
 };
-
 
 
 //new
@@ -397,25 +400,8 @@ useEffect(() => {
 
 
   pendingMicResumeRef.current = true;
-  setTimeout(() => {
-    if (
-      activeAudioSourcesRef.current === 0 &&
-      !aiSpeaking &&
-      pendingMicResumeRef.current &&
-      recognitionRef.current &&
-      !micRunningRef.current 
-    ) {
-      try {
-        recognitionRef.current.start();
-        micRunningRef.current = true;  
-        pendingMicResumeRef.current = false;
-              
-        console.log("🎤 Mic restarted after AI finished.");
-      } catch (err) {
-        console.warn("Mic restart failed:", err);
-      }
-    }
-  }, 500);
+
+
   
        
       };
@@ -739,16 +725,19 @@ useEffect(() => {
 
     if (!SpeechRecognitionClass) return;
 
-    const startRecognition = () => {
-      if (!isRecognizingRef.current && timerActive && !sessionEnded) {
-        try {
-          recognition.start();
-          isRecognizingRef.current = true;
-        } catch (err) {
-          console.warn("Safe mic start failed:", err);
-        }
-      }
-    };
+const startRecognition = () => {
+  if (!isRecognizingRef.current && timerActive && !sessionEnded) {
+    try {
+      recognition.start();
+      isRecognizingRef.current = true;
+      micRunningRef.current = true;
+      console.log("🎤 Mic started initially");
+    } catch (err) {
+      console.warn("Safe mic start failed:", err);
+    }
+  }
+};
+
 
   
 
@@ -763,12 +752,29 @@ useEffect(() => {
     };
 
     recognition.onend = () => {
-      isRecognizingRef.current = false;
+  isRecognizingRef.current = false;
 
-      if (mounted && timerActive && !sessionEnded && !aiSpeaking) {
-        startRecognition();
+  // Let resumeMicWhenSafe handle restarts
+  if (mounted && timerActive && !sessionEnded && !aiSpeaking) {
+    if (!micRunningRef.current && pendingMicResumeRef.current) {
+      console.log("⏳ Mic will resume via resumeMicWhenSafe");
+      return; // prevent double start
+    }
+
+    // Fallback if AI is not speaking and no pending resume
+    if (!micRunningRef.current) {
+      try {
+        recognition.start();
+        isRecognizingRef.current = true;
+        micRunningRef.current = true;
+        console.log("🎤 Mic restarted directly via onend fallback");
+      } catch (err) {
+        console.warn("Fallback mic start failed:", err);
       }
-    };
+    }
+  }
+};
+
 
    let finalTranscriptBuffer = "";
 let finalTranscriptTimer: ReturnType<typeof setTimeout> | null = null;
