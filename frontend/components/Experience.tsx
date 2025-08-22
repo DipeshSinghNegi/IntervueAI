@@ -400,8 +400,25 @@ useEffect(() => {
 
 
   pendingMicResumeRef.current = true;
-
-
+  setTimeout(() => {
+    if (
+      activeAudioSourcesRef.current === 0 &&
+      !aiSpeaking &&
+      pendingMicResumeRef.current &&
+      recognitionRef.current &&
+      !micRunningRef.current 
+    ) {
+      try {
+        recognitionRef.current.start();
+        micRunningRef.current = true;  
+        pendingMicResumeRef.current = false;
+              
+        console.log("🎤 Mic restarted after AI finished.");
+      } catch (err) {
+        console.warn("Mic restart failed:", err);
+      }
+    }
+  }, 500);
   
        
       };
@@ -445,7 +462,7 @@ useEffect(() => {
 // STOP MIC as soon as AI reply starts
   if (recognitionRef.current && micRunningRef.current) {
     try {
-      recognitionRef.current.abort();
+      recognitionRef.current.stop();
       micRunningRef.current = false;
       console.log('🔇 Mic stopped - AI about to speak');
     } catch (err) {
@@ -725,19 +742,16 @@ useEffect(() => {
 
     if (!SpeechRecognitionClass) return;
 
-const startRecognition = () => {
-  if (!isRecognizingRef.current && timerActive && !sessionEnded) {
-    try {
-      recognition.start();
-      isRecognizingRef.current = true;
-      micRunningRef.current = true;
-      console.log("🎤 Mic started initially");
-    } catch (err) {
-      console.warn("Safe mic start failed:", err);
-    }
-  }
-};
-
+    const startRecognition = () => {
+      if (!isRecognizingRef.current && timerActive && !sessionEnded) {
+        try {
+          recognition.start();
+          isRecognizingRef.current = true;
+        } catch (err) {
+          console.warn("Safe mic start failed:", err);
+        }
+      }
+    };
 
   
 
@@ -752,29 +766,12 @@ const startRecognition = () => {
     };
 
     recognition.onend = () => {
-  isRecognizingRef.current = false;
+      isRecognizingRef.current = false;
 
-  // Let resumeMicWhenSafe handle restarts
-  if (mounted && timerActive && !sessionEnded && !aiSpeaking) {
-    if (!micRunningRef.current && pendingMicResumeRef.current) {
-      console.log("⏳ Mic will resume via resumeMicWhenSafe");
-      return; // prevent double start
-    }
-
-    // Fallback if AI is not speaking and no pending resume
-    if (!micRunningRef.current) {
-      try {
-        recognition.start();
-        isRecognizingRef.current = true;
-        micRunningRef.current = true;
-        console.log("🎤 Mic restarted directly via onend fallback");
-      } catch (err) {
-        console.warn("Fallback mic start failed:", err);
+      if (mounted && timerActive && !sessionEnded && !aiSpeaking) {
+        startRecognition();
       }
-    }
-  }
-};
-
+    };
 
    let finalTranscriptBuffer = "";
 let finalTranscriptTimer: ReturnType<typeof setTimeout> | null = null;
