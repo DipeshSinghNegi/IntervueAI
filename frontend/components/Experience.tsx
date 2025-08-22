@@ -88,7 +88,7 @@ let longPauseCount = 0;
   const [speaking, setSpeaking] = useState<"ai" | "student" | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const recognitionRef = useRef<any>(null);
   const pendingMicResumeRef = useRef(false);
 
@@ -292,7 +292,9 @@ useEffect(() => {
 
     try {
       const chunk = audioChunkQueueRef.current.shift()!;
-      sourceBufferRef.current!.appendBuffer(chunk);
+      // Ensure chunk is backed by a true ArrayBuffer
+      const arrayBuffer = chunk instanceof Uint8Array ? new Uint8Array(chunk).buffer : chunk;
+      sourceBufferRef.current!.appendBuffer(arrayBuffer);
    
 
     } catch (error) {
