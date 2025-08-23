@@ -12,6 +12,7 @@ import RecentProjects from "@/components/RecentProjects";
 import { FloatingNav } from "@/components/ui/FloatingNavbar";
 import DropdownPortal from "@/components/Dropdownportal";
 import Image from "next/image";
+import { Zap } from "lucide-react";
 
 type GoogleTokenPayload = {
   name: string;
@@ -27,6 +28,7 @@ const Home = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [token, setToken] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<GoogleTokenPayload | null>(null);
+    const [loading, setLoading] = useState(true);
   const projectRef = useRef<HTMLDivElement>(null);
 const router = useRouter();
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
@@ -106,6 +108,7 @@ setUserInfo(JSON.parse(storedUser));
       console.error("Failed to parse stored user info", err);
     }
   }
+  setLoading(false); 
 }, []);
 
 useEffect(() => {
@@ -144,7 +147,7 @@ useEffect(() => {
   
 
 
-<div className="w-full flex justify-between items-center px-4 sm:px-6 py-4 absolute top-0 z-[10000]">
+<div className="w-full flex justify-between items-center px-4 sm:px-6 py-1 absolute top-0 z-[10000]">
 
   {/* Left Side - Logo */}
   <div>
@@ -153,8 +156,8 @@ useEffect(() => {
 
  <div className="flex items-center gap-4">
 
-
-        {!token ? (
+{!loading && (
+        !token ? (
           <button
             onClick={() => router.push("/signup")}
             className="border bg-transparent hover:border-2 text-white px-3 py-1 sm:py-2 rounded-xl text-sm shadow-md font-thin"
@@ -165,77 +168,113 @@ useEffect(() => {
 
             <div className="relative text-white flex flex-row items-end gap-2 ">
               {/* Credits */}
-              <div className="flex items-center gap-1 mb-[5px] text-yellow-400 mt-3 px-1  w-full h-8 py-1 rounded-full text-sm shadow-sm bg-gray-700 border border-yellow-400">
-                <FaBolt className="text-sm" />
-                <span className=" text-white">{credits !== null ? credits : '...'}</span>
-              </div>
+             <div
+  className="flex items-center gap-1 mb-[5px] mt-3  px-2  h-8 rounded-full 
+             bg-[#0b0f14]/80 text-slate-200 border border-gray-800
+             backdrop-blur-md shadow-2xl"
+  title="Credits"
+  aria-label={`Credits: ${credits !== null ? credits : '…'}`}
+>
+    <span className="tabular-nums ">{credits !== null ? credits : '…'}</span>
+  <Zap className="text-[0.4rem] opacity-70 py-1 " />
+
+</div>
+
 
               {/* Dashboard Button */}
             
 
-        <div className="relative text-white">
-          
+ <div className="relative text-white">
+  {/* Avatar trigger */}
   <button
-    onClick={() => setShowDropdown(prev => !prev)}
-    className="w-8 h-8 rounded-full overflow-hidden border border-white"
+    onClick={() => setShowDropdown((prev) => !prev)}
+    className="w-8 h-8 rounded-full overflow-hidden border border-white/20 hover:border-white/40 transition"
+    aria-haspopup="menu"
+    aria-expanded={showDropdown}
   >
-<Image
-  src={userInfo?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo?.name || "User")}`}
-  alt="User Avatar"
-  width={32} // or appropriate size
-  height={32}
-  className="w-full h-full object-cover"
-  unoptimized // necessary for external URLs unless you configure next.config.js
-/>
-
+    <Image
+      src={
+        userInfo?.picture ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo?.name || "User")}`
+      }
+      alt="User Avatar"
+      width={32}
+      height={32}
+      className="w-full h-full object-cover"
+      unoptimized
+    />
   </button>
 
-
   {showDropdown && (
- 
-
-                  <div id="user-dropdown" className="absolute right-0 mt-2 w-64 bg-gray-800 border border-green-700 rounded-xl shadow-md p-4 z-[11000]  text-sm" 
-                    style={{ top: '3rem' }}
-                  >
-                    
+    <div
+      id="user-dropdown"
+      className="absolute right-0 mt-2 w-64 
+                 bg-[#0b0f14]/90 backdrop-blur-md 
+                 border border-slate-600/50 
+                 rounded-2xl shadow-2xl p-4 z-[11000] 
+                 text-sm text-slate-200"
+      style={{ top: "3rem" }}
+      role="menu"
+      aria-label="User menu"
+    >
+      {/* Header */}
       <div className="flex items-center gap-3 mb-3">
-<Image
-  src={userInfo?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo?.name || "User")}`}
-  alt="avatar"
-  width={40}
-  height={40}
-  className="w-10 h-10 rounded-full"
-  unoptimized
-/>
-
-        <div>
-          <p className="font-medium">{userInfo?.name}</p>
-          <p className="text-xs text-green-200">{userInfo?.email}</p>
+        <Image
+          src={
+            userInfo?.picture ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo?.name || "User")}`
+          }
+          alt="avatar"
+          width={40}
+          height={40}
+          className="w-10 h-10 rounded-full border border-white/10"
+          unoptimized
+        />
+        <div className="min-w-0">
+          <p className="font-medium truncate">{userInfo?.name}</p>
+          <p className="text-xs text-slate-400 truncate">{userInfo?.email}</p>
         </div>
       </div>
-                    <button
-                      onClick={() => router.push("/dashboard")}
-                      className="mb-2 ml-2 text-green-400 hover:text-green-200 border border-green-300 bg-[#18271A] text-xs hover:border-green-500 rounded-md  px-3 py-3"
-                    >
-                     My Sessions
-                    </button>
-      <hr className="border-gray-600 my-2" />
-      <button
-        onClick={handleLogout}
-        className="text-red-400 hover:underline text-left w-full"
-      >
-        Logout
-      </button>
+
+      <div className="h-px w-full bg-white/5 my-2" />
+
+      {/* Actions */}
+      <div className="flex flex-col gap-2">
+        <button
+          onClick={() => {
+            setShowDropdown(false);
+            router.push("/dashboard");
+          }}
+          className="w-full text-left px-3 py-2 rounded-lg 
+                     bg-white/0 hover:bg-white/5 
+                     text-slate-200 hover:text-white 
+                     border border-transparent hover:border-white/10
+                     transition"
+          role="menuitem"
+        >
+          My Sessions
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="w-full text-left px-3 py-2 rounded-lg 
+                     bg-white/0 hover:bg-white/5 
+                     text-slate-300 hover:text-white 
+                     border border-transparent hover:border-white/10
+                     transition"
+          role="menuitem"
+        >
+          Logout
+        </button>
+      </div>
     </div>
-                 
   )}
+</div>
 
 
 </div>
 
-</div>
-
-
+        )
         )}
 
  </div>

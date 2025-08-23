@@ -1,11 +1,5 @@
 "use client";
-import React, { useState } from "react";
-import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useMotionValueEvent,
-} from "framer-motion";
+import React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -20,49 +14,20 @@ export const FloatingNav = ({
   }[];
   className?: string;
 }) => {
-  const { scrollYProgress } = useScroll();
-
-  // set true for the initial state so that nav bar is visible in the hero section
-  const [visible, setVisible] = useState(true);
-
-  useMotionValueEvent(scrollYProgress, "change", (current) => {
-    // Check if current is not undefined and is a number
-    if (typeof current === "number") {
-      let direction = current! - scrollYProgress.getPrevious()!;
-
-      if (scrollYProgress.get() < 0.05) {
-        // also set true for the initial state
-        setVisible(true);
-      } else {
-        if (direction < 0) {
-          setVisible(true);
-        } else {
-          setVisible(false);
-        }
-      }
-    }
-  });
-
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        initial={{
-          opacity: 1,
-          y: -100,
-        }}
-        animate={{
-          y: visible ? 0 : -100,
-          opacity: visible ? 1 : 0,
-        }}
-        transition={{
-          duration: 0.2,
-        }}
+    <div
+      className={cn(
+        // Sticky instead of fixed; sits at the top where it starts
+        "sticky top-0 z-[5000] w-full",
+        className
+      )}
+    >
+      <div
         className={cn(
-          // change rounded-full to rounded-lg
-          // remove dark:border-white/[0.2] dark:bg-black bg-white border-transparent
-          // change  pr-2 pl-8 py-2 to px-10 py-5
-          "flex max-w-3xl md:min-w-[70vw] lg:min-w-fit fixed z-[5000] top-14 inset-x-0 mx-auto px-8 py-5 rounded-lg border border-black/.1 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] items-center justify-center space-x-4",
-          className
+          // same visual styles you had, just not floating anymore
+          "mx-auto mt-14 flex max-w-3xl md:min-w-[70vw] lg:min-w-fit",
+          "px-8 py-5 rounded-lg items-center justify-center space-x-4",
+          "border border-black/10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]"
         )}
         style={{
           backdropFilter: "blur(16px) saturate(180%)",
@@ -71,22 +36,23 @@ export const FloatingNav = ({
           border: "1px solid rgba(255, 255, 255, 0.125)",
         }}
       >
-        {navItems.map((navItem: any, idx: number) => (
+        {navItems.map((navItem, idx) => (
           <Link
-            key={`link=${idx}`}
+            key={`link-${idx}`}
             href={navItem.link}
             className={cn(
-              "relative dark:text-neutral-50 items-center  flex space-x-1 text-neutral-600 dark:hover:text-neutral-300 hover:text-neutral-500"
+              "relative items-center flex space-x-1",
+              "text-neutral-600 dark:text-neutral-50",
+              "hover:text-neutral-500 dark:hover:text-neutral-300"
             )}
           >
-            <span className="block ">{navItem.icon}</span>
-            {/* add !cursor-pointer */}
-            {/* remove hidden sm:block for the mobile responsive */}
-            <span className=" text-sm md:!text-xl !cursor-pointer">{navItem.name}</span>
+            {navItem.icon && <span className="block">{navItem.icon}</span>}
+            <span className="text-sm md:!text-xl !cursor-pointer">
+              {navItem.name}
+            </span>
           </Link>
         ))}
-   
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </div>
   );
 };
