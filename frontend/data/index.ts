@@ -13,7 +13,7 @@ export const socialMedia = [
   {
     id: "github",
     img: "/git.svg",
-    url: "https://github.com/icebear-py",
+    url: "https://github.com/icebear-py/IntervueAI",
   },
   {
     id: "linkedin",

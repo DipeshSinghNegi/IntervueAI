@@ -66,11 +66,11 @@ const handleLogout = () => {
 };
   useEffect(() => {
     if (!userInfo?.email) {
-      console.log("No email available, skipping fetch");
+      
       return;
     }
 
-    console.log("Sending request to get_credits with email:", userInfo.email);
+ 
 
     fetch(`${API_BASE_URL}api/v1/get_credits`, {
       method: 'POST',
@@ -84,12 +84,12 @@ const handleLogout = () => {
         return res.json();
       })
       .then((data) => {
-        console.log("Credits response:", data);
+      
         setCredits(data.credits);
         
       })
       .catch((err) => {
-        console.error("Error fetching credits:", err);
+      
       });
   }, [userInfo]);
 
@@ -105,7 +105,7 @@ useEffect(() => {
 setToken(storedToken);
 setUserInfo(JSON.parse(storedUser)); 
     } catch (err) {
-      console.error("Failed to parse stored user info", err);
+      
     }
   }
   setLoading(false); 
@@ -169,14 +169,20 @@ useEffect(() => {
             <div className="relative text-white flex flex-row items-end gap-2 ">
               {/* Credits */}
              <div
-  className="flex items-center gap-1 mb-[5px] mt-3  px-2  h-8 rounded-full 
+  className="flex items-center gap-1 mb-[5px] mt-3 pr-1 px-2  h-8 rounded-lg
              bg-[#0b0f14]/80 text-slate-200 border border-gray-800
              backdrop-blur-md shadow-2xl"
   title="Credits"
   aria-label={`Credits: ${credits !== null ? credits : '…'}`}
 >
     <span className="tabular-nums ">{credits !== null ? credits : '…'}</span>
-  <Zap className="text-[0.4rem] opacity-70 py-1 " />
+<span
+  className="text-[1.2rem]
+             "
+>
+  ⚡
+</span>
+
 
 </div>
 

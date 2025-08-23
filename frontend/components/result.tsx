@@ -53,7 +53,7 @@ const Result = () => {
       setEmail(localEmail);
       fetchData(localSessionId, localEmail);
     } else {
-      console.warn("Missing session_id or email in localStorage");
+    
       setIsLoading(false);
       router.push("/");
     }
@@ -99,7 +99,7 @@ setChatHistory(chat);
       const raw = response.results || "";
       setGrouped(parseGroupedResults(raw));
     } catch (err) {
-      console.error("Failed to fetch data:", err);
+     
     } finally {
       setIsLoading(false);
     }

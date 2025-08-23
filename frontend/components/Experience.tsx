@@ -69,18 +69,18 @@ function useVad(streamRef: React.MutableRefObject<MediaStream | null>) {
             lastAbove = now;
             if (!speaking) {
               setSpeaking(true);
-              console.log("🔊 VAD: Speaking detected, RMS:", rms);
+           
             }
           } else {
             if (speaking && now - lastAbove > SILENCE_HANG_MS) {
               setSpeaking(false);
-              console.log("🔇 VAD: Silence detected, RMS:", rms);
+           
             }
           }
         };
         loop();
       } catch (e) {
-        console.warn("VAD init failed", e);
+       
       }
     })();
     return () => {
@@ -158,27 +158,25 @@ const activeNodesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
 
   function appendToAnswer(text: string) {
     if (!text || intakeLockedRef.current) return; // ignore while locked
-    console.log("BEFORE append - Buffer:", answerBufRef.current);
-    console.log("BEFORE append - New text:", text);
+
     const stitched = (answerBufRef.current + " " + text).replace(/\s+/g, " ").trim();
     answerBufRef.current = stitched;
-    // setInterim handled in onresult (session-only preview)
-    console.log("AFTER append - Buffer:", answerBufRef.current);
+
   }
 
   function scheduleCommit() {
     clearCommitTimer();
-    console.log("SCHEDULING commit - Current buffer:", answerBufRef.current);
+  
 
     commitTimerRef.current = setTimeout(() => {
       const finalText = answerBufRef.current.trim();
-      console.log("COMMITTING - Final text:", finalText);
+
       if (!finalText) return;
 
       // Defer if AI is busy
       if (intakeLockedRef.current || phaseRef.current === Phase.SENDING || phaseRef.current === Phase.PLAYING) {
         pendingSubmitRef.current = finalText;
-        console.log("⏸️ Commit deferred (AI busy) — will send after playback");
+
         return;
       }
 
@@ -233,7 +231,7 @@ useEffect(() => {
           scheduledAtRef.current = ctx.currentTime;
           audioReadyRef.current = true;
         } catch (e) {
-          console.error("AudioContext unlock failed", e);
+       
         }
       }
       document.removeEventListener("click", unlock);
@@ -254,7 +252,7 @@ useEffect(() => {
         const s = await navigator.mediaDevices.getUserMedia({ audio: true });
         micStreamRef.current = s;
       } catch (e) {
-        console.warn("getUserMedia failed", e);
+       
       }
     })();
   }, []);
@@ -272,7 +270,7 @@ useEffect(() => {
 
   const startShortSR = () => {
     if (!speechSupported || srActiveRef.current) return;
-    console.log("🎤 Starting speech recognition...");
+ 
 
     const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const rec: SpeechRecognition = new SR();
@@ -290,7 +288,7 @@ useEffect(() => {
       interimRef.current = "";      // reset live interim
       setInterim("");
       setPhase(Phase.CAPTURING);
-      console.log("✅ Speech recognition started");
+      
     };
 
     rec.onresult = (e: SpeechRecognitionEvent) => {
@@ -324,7 +322,7 @@ useEffect(() => {
 
     rec.onerror = (e) => {
       if (intakeLockedRef.current) return;
-      console.warn("Speech recognition error:", e);
+    
       setPhase(Phase.LISTEN_ARMED);
     };
 
@@ -339,8 +337,7 @@ useEffect(() => {
         appendToAnswer(leftover);
       }
 
-      console.log("SR ended - Session finals:", sessionAccumRef.current);
-      console.log("SR ended - Cross-pause buffer now:", answerBufRef.current);
+    
 
       interimRef.current = "";
       setInterim("");
@@ -352,18 +349,18 @@ useEffect(() => {
       rec.start();
       srRef.current = rec;
     } catch (e) {
-      console.error("Failed to start speech recognition:", e);
+
     }
   };
 
   // VAD-driven SR control
   useEffect(() => {
-    console.log("🔄 VAD state:", { speaking, phase, speakingPrev: speakingPrev.current });
+   
 
     if (phase === Phase.LISTEN_ARMED && speaking && !speakingPrev.current) {
       const sinceLast = Date.now() - lastSpeechTsRef.current;
       if (sinceLast < RESUME_GRACE_MS && answerBufRef.current.trim()) {
-        console.log("🔄 Continuing existing session instead of starting new");
+      
         clearCommitTimer();
         if (!srActiveRef.current) startShortSR();
       } else {
@@ -378,7 +375,7 @@ useEffect(() => {
     try { srRef.current?.stop(); } catch {}
     srRef.current = null;
     srActiveRef.current = false;
-    console.log("🔇 Speech recognition stopped");
+
   };
 
   // Fallback: start SR after delay if VAD doesn't trigger
@@ -386,7 +383,7 @@ useEffect(() => {
     if (phase === Phase.LISTEN_ARMED && speechSupported && !srActiveRef.current) {
       const fallbackTimer = setTimeout(() => {
         if (phase === Phase.LISTEN_ARMED && !srActiveRef.current) {
-          console.log("🔄 Fallback: Starting speech recognition after delay");
+        
           startShortSR();
         }
       }, 2000);
@@ -405,7 +402,7 @@ useEffect(() => {
     clearCommitTimer();
     stopSR();
     setPhase(Phase.SENDING);
-    console.log("🔇 Stopping speech recognition - AI about to speak");
+
 
     // create placeholder AI message
     let aiIdx = -1;
@@ -423,9 +420,9 @@ useEffect(() => {
       });
 
       if (!res.ok) {
-        console.error(`❌ Server error: HTTP ${res.status}`);
+      
         const errorText = await res.text();
-        console.error("Error details:", errorText);
+      
         throw new Error(`Server error: HTTP ${res.status} - ${errorText}`);
       }
 
@@ -471,13 +468,13 @@ useEffect(() => {
   
         } catch (e: any) {
     if (e?.name === "AbortError") {
-      console.log("⛔ Stream aborted due to End Interview");
+     
      return;
     }
-      console.error("Stream error:", e);
+      
 
       if (retryCount < 2 && e instanceof Error && e.message.includes("Server error")) {
-        console.log(`🔄 Retrying... Attempt ${retryCount + 1}/2`);
+       
         setMessages((p) => [...p, { from: "ai", text: `🔄 Retrying connection... (${retryCount + 1}/2)` }]);
         streamingRef.current = false;
         setTimeout(() => { streamAI(endpoint, user_input, retryCount + 1); }, 2000);
@@ -492,7 +489,7 @@ useEffect(() => {
       if (activeSourcesRef.current === 0 && !endedRef.current) {
         intakeLockedRef.current = false; // UNLOCK here (no audio path)
         setPhase(Phase.LISTEN_ARMED);
-        console.log("🎤 Re-arming speech recognition after AI response");
+     
         // Flush deferred commit if any
         if (pendingSubmitRef.current) {
           const toSend = pendingSubmitRef.current.trim();
@@ -599,7 +596,7 @@ const gracefulEnd = async () => {
           // UNLOCK and re-arm listening for next turn
           intakeLockedRef.current = false; // UNLOCK here (audio path)
           setPhase(Phase.LISTEN_ARMED);
-          console.log("🎤 AI finished speaking - ready for user input");
+      
 
           // Flush any deferred commit now
           if (pendingSubmitRef.current) {
@@ -612,7 +609,7 @@ const gracefulEnd = async () => {
         }
       };
     } catch (e) {
-      console.error("audio decode/play error", e);
+   
     }
   };
 
