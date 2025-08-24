@@ -2,7 +2,17 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Bot, User, FileText, Star, Home, Loader2 } from "lucide-react";
+import {
+  Download,
+  Bot,
+  User,
+  FileText,
+  Home,
+  Loader2,
+  Percent,
+  ClipboardList,
+  ListChecks,
+} from "lucide-react";
 import { Button } from "./ui/MovingBorders";
 
 /* ----------------------------- URL helper -------------------------------- */
@@ -17,6 +27,16 @@ function api(path: string) {
   return `${base}/${p}`;
 }
 
+/* ----------------------------- Types ----------------------------- */
+type ChatMsg = { from: string; text: string };
+type Metric = { label: string; value: string };
+type GroupedResults = {
+  metrics: Metric[];
+  overview: string[];
+  resume: string[];
+  recommendations: string[];
+};
+
 /* --------------------------------- UI ------------------------------------ */
 
 const Result = () => {
@@ -24,10 +44,13 @@ const Result = () => {
   const [allSessions, setAllSessions] = useState<any[]>([]);
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(0);
 
-  const [chatHistory, setChatHistory] = useState<{ from: string; text: string }[]>([]);
-  const [resultData, setResultData] = useState<
-    { label: string; value: string; icon: JSX.Element }[]
-  >([]);
+  const [chatHistory, setChatHistory] = useState<ChatMsg[]>([]);
+  const [grouped, setGrouped] = useState<GroupedResults>({
+    metrics: [],
+    overview: [],
+    resume: [],
+    recommendations: [],
+  });
 
   const [sessionId, setSessionId] = useState("");
   const [email, setEmail] = useState("");
@@ -36,17 +59,24 @@ const Result = () => {
   // Overlay shown ONLY during the actual API call
   const [isLoading, setIsLoading] = useState(false);
 
+  // Filter "start", and parse results into grouped sections (match result.tsx)
   const updateSessionData = (sessionData: any) => {
     const sid = sessionData?.session?.session_id || "";
-    const chat =
-      sessionData?.history?.map((item: any) => ({
+
+    const rawHist = Array.isArray(sessionData?.history) ? sessionData.history : [];
+    const chat: ChatMsg[] = rawHist
+      .filter((item: any) => String(item?.content ?? "").trim().toLowerCase() !== "start")
+      .map((item: any) => ({
         from: item.role === "user" ? "You" : "AI",
         text: item.content,
-      })) || [];
-    const parsedResults = sessionData?.results ? parseResults(sessionData.results) : [];
+      }));
+
+    const raw = sessionData?.results || "";
+    const parsedGrouped = parseGroupedResults(raw);
+
     setSessionId(sid);
     setChatHistory(chat);
-    setResultData(parsedResults);
+    setGrouped(parsedGrouped);
   };
 
   useEffect(() => {
@@ -59,28 +89,25 @@ const Result = () => {
   const refetch = async () => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) {
-      console.warn("No 'user' in localStorage; skipping results fetch.");
       setAllSessions([]);
       setSessionId("");
       setChatHistory([]);
-      setResultData([]);
+      setGrouped({ metrics: [], overview: [], resume: [], recommendations: [] });
       return;
     }
 
     let userEmail = "";
     try {
       const parsed = JSON.parse(storedUser);
-      if (typeof parsed === "string") userEmail = parsed;
-      else if (parsed && typeof parsed === "object" && parsed.email) userEmail = parsed.email;
+      userEmail = typeof parsed === "string" ? parsed : parsed?.email || "";
     } catch {
       userEmail = storedUser; // raw string fallback
     }
     if (!userEmail) {
-      console.warn("No email found inside 'user'; skipping results fetch.");
       setAllSessions([]);
       setSessionId("");
       setChatHistory([]);
-      setResultData([]);
+      setGrouped({ metrics: [], overview: [], resume: [], recommendations: [] });
       return;
     }
 
@@ -92,23 +119,12 @@ const Result = () => {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // credentials: "include", // uncomment if your backend uses cookies/sessions
         body: JSON.stringify({ email: userEmail }),
       });
 
-      if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        console.error(`❌ ${res.status} ${res.statusText} @ ${endpoint}`, errText);
-        throw new Error(`Server error ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
 
-      let data: unknown = null;
-      try {
-        data = await res.json();
-      } catch (e) {
-        console.error("❌ Failed to parse JSON response:", e);
-      }
-
+      const data = await res.json().catch(() => []);
       const sessions = Array.isArray(data) ? data : [];
       setAllSessions(sessions);
 
@@ -118,44 +134,181 @@ const Result = () => {
       } else {
         setSessionId("");
         setChatHistory([]);
-        setResultData([]);
+        setGrouped({ metrics: [], overview: [], resume: [], recommendations: [] });
       }
     } catch (err) {
-      console.error("❌ Fetch failed:", err);
-      // Clear visible state on hard failure (optional)
       setAllSessions([]);
       setSessionId("");
       setChatHistory([]);
-      setResultData([]);
+      setGrouped({ metrics: [], overview: [], resume: [], recommendations: [] });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const parseResults = (raw: string) => {
-    const lines = raw.split("\n").filter(Boolean);
-    return lines.map((line) => {
-      const [label, value] = line.split(":").map((str) => str.trim());
-      let icon;
-      switch ((label || "").toLowerCase()) {
-        case "resume score":
-          icon = <FileText className="w-5 h-5 text-cyan-400" />;
-          break;
-        case "overall performance":
-          icon = <Star className="w-5 h-5 text-yellow-400" />;
-          break;
-        case "communication":
-          icon = <Bot className="w-5 h-5 text-purple-400" />;
-          break;
-        default:
-          icon = <FileText className="w-5 h-5 text-slate-400" />;
+  /* ----------------------- Parser (flexible like result.tsx, more robust) ----------------------- */
+
+  function normalize(s: string) {
+    return String(s).replace(/\*\*/g, "").replace(/\*/g, "").trim();
+  }
+
+  function splitSections(raw: string) {
+    const lines = String(raw).split("\n").map(l => l.trim()).filter(Boolean);
+
+    const headings = {
+      // accept “Performance Metrics/Matrix/Ratings/Breakdown/Scores”
+      metrics: /performance\s*(metrics?|matrix|ratings?|breakdown|scores?)\b/i,
+      // accept “Performance Overview/Overall Performance/Performance Summary/Overall Summary”
+      overview: /(performance\s*overview|overall\s*performance|performance\s*summary|overall\s*summary)\b/i,
+      // accept “Resume/CV Review/Analysis/Feedback/Critique”
+      resume: /(resume|cv)\s*(review|analysis|feedback|critique)\b/i,
+      // accept “Recommendations/Suggestions/Next Steps/Action Items/Improvements/Tips”
+      recs: /(recommendations?|suggestions?|next\s*steps|action\s*items?|improvements?|tips?)\b/i,
+    };
+
+    const isSectionHeading = (s: string) =>
+      headings.metrics.test(s) ||
+      headings.overview.test(s) ||
+      headings.resume.test(s) ||
+      headings.recs.test(s);
+
+    const buckets: { [k: string]: string[] } = {
+      metrics: [],
+      overview: [],
+      resume: [],
+      recs: [],
+      rest: [],
+    };
+
+    let current: keyof typeof buckets = "rest";
+    for (const lineRaw of lines) {
+      const plain = normalize(lineRaw);
+
+      if (headings.metrics.test(plain)) { current = "metrics"; continue; }
+      if (headings.overview.test(plain)) { current = "overview"; continue; }
+      if (headings.resume.test(plain))  { current = "resume";  continue; }
+      if (headings.recs.test(plain))    { current = "recs";    continue; }
+
+      if (!plain || isSectionHeading(plain)) continue; // skip stray headings
+      buckets[current].push(plain);
+    }
+    return buckets;
+  }
+
+  function parseMetrics(lines: string[]): Metric[] {
+    const out: Metric[] = [];
+    for (let raw of lines) {
+      if (!raw) continue;
+
+      // strip common bullets/quotes/numbers and markdown bits
+      let line = normalize(
+        raw
+          .replace(/^\s*[-*•]\s+/, "")   // "- " / "• "
+          .replace(/^\s*\d+\.\s+/, "")   // "1. "
+          .replace(/^\s*"+|"+\s*$/g, "") // quotes
+      );
+
+      // skip intro sentences
+      if (/based on|summary of your performance/i.test(line)) continue;
+
+      // find a percent anywhere; allow notes after (e.g., "60% (Good)")
+      const pm = line.match(/(\d{1,3})\s*%/);
+      // also support x/100 → percent
+      const per100 = !pm ? line.match(/(\d{1,3})\s*\/\s*100\b/) : null;
+
+      let valueNum: number | null = null;
+      if (pm) valueNum = Math.min(100, Math.max(0, parseInt(pm[1], 10)));
+      else if (per100) valueNum = Math.min(100, Math.max(0, parseInt(per100[1], 10)));
+      if (valueNum === null || Number.isNaN(valueNum)) continue;
+
+      // label before ":" or " - " or before %/x/100
+      let label = line;
+      const colon = line.indexOf(":");
+      const dash3 = line.indexOf(" - ");
+      const sepIdx =
+        colon !== -1 && dash3 !== -1 ? Math.min(colon, dash3) :
+        colon !== -1 ? colon :
+        dash3 !== -1 ? dash3 : -1;
+
+      if (sepIdx !== -1)      label = line.slice(0, sepIdx);
+      else if (pm)            label = line.slice(0, pm.index!).trim();
+      else if (per100)        label = line.slice(0, per100.index!).trim();
+
+      label = label.replace(/[–—-]\s*$/,"").trim() || "Metric";
+      out.push({ label, value: `${valueNum}%` });
+    }
+    return out;
+  }
+
+  function parseParagraphs(lines: string[]): string[] {
+    const paras: string[] = [];
+    let buf: string[] = [];
+
+    // locally share the same heading test used in splitSections
+    const headings = {
+      metrics: /performance\s*(metrics?|matrix|ratings?|breakdown|scores?)\b/i,
+      overview: /(performance\s*overview|overall\s*performance|performance\s*summary|overall\s*summary)\b/i,
+      resume: /(resume|cv)\s*(review|analysis|feedback|critique)\b/i,
+      recs: /(recommendations?|suggestions?|next\s*steps|action\s*items?|improvements?|tips?)\b/i,
+    };
+    const isSectionHeading = (s: string) =>
+      headings.metrics.test(s) ||
+      headings.overview.test(s) ||
+      headings.resume.test(s) ||
+      headings.recs.test(s);
+
+    const flush = () => {
+      const txt = normalize(buf.join(" ").trim());
+      if (txt && !isSectionHeading(txt)) paras.push(txt);
+      buf = [];
+    };
+
+    for (const raw of lines) {
+      const cleaned = normalize(
+        raw
+          .replace(/^\s*[-*•]\s+/, "") // bullets
+          .replace(/^\s*\d+\.\s+/, "") // numbered
+      );
+
+      if (!cleaned || isSectionHeading(cleaned)) { flush(); continue; }
+
+      // if original looked like a bullet/number, treat as its own para
+      if (/^(-|\d+\.)\s+/.test(raw)) {
+        flush();
+        paras.push(cleaned);
+      } else {
+        buf.push(cleaned);
       }
-      return { label, value, icon };
-    });
-  };
+    }
+
+    flush();
+    return paras;
+  }
+
+  function parseRecommendations(lines: string[]): string[] {
+    const items: string[] = [];
+    for (const raw of lines) {
+      const line = normalize(raw);
+      const m = line.match(/^(?:-|\d+\.)\s*(.+)$/);
+      if (m) items.push(normalize(m[1]));
+    }
+    if (items.length) return items;
+    return parseParagraphs(lines);
+  }
+
+  function parseGroupedResults(raw: string): GroupedResults {
+    const sections = splitSections(raw);
+    const metrics = parseMetrics(sections.metrics.length ? sections.metrics : sections.rest);
+    const overview = parseParagraphs(sections.overview);
+    const resume = parseParagraphs(sections.resume);
+    const recommendations = parseRecommendations(sections.recs);
+    return { metrics, overview, resume, recommendations };
+  }
+
+  /* ---------------------------------- Utils --------------------------------- */
 
   const handleDownload = () => {
-    const blob = new Blob([JSON.stringify({ sessionId, chatHistory, resultData }, null, 2)], {
+    const blob = new Blob([JSON.stringify({ sessionId, chatHistory, grouped }, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
@@ -165,6 +318,8 @@ const Result = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  /* --------------------------------- Render -------------------------------- */
 
   return (
     <div className="min-h-screen w-full bg-[#05081A] flex flex-col relative">
@@ -248,26 +403,119 @@ const Result = () => {
               )}
             </div>
 
-            {/* Results */}
+            {/* Results (GROUPED like result.tsx) */}
             <div className="w-full h-full flex flex-col overflow-hidden">
               <h2 className="font-bold text-xl text-white p-4 border-b border-[#1b1f2f]">
                 Result Summary
               </h2>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                {resultData.length ? (
-                  resultData.map((row, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between bg-slate-800/40 p-4 rounded-lg border border-slate-700/50 transition-all hover:border-cyan-500/50 hover:bg-slate-800/60"
-                    >
+
+              <div
+                className="
+                  flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar
+                  [&_p]:text-base [&_li]:text-base
+                  md:[&_p]:text-xl md:[&_li]:text-xl md:[&_span.font-semibold]:text-2xl
+                "
+              >
+                {/* Performance Metrics */}
+                {(grouped.metrics?.length ?? 0) > 0 && (
+                  <>
+                    <div className="flex items-center justify-between bg-slate-800/40 p-4 rounded-lg border border-slate-700/50">
                       <div className="flex items-center gap-3">
-                        {row.icon}
-                        <span className="font-semibold text-white">{row.label}</span>
+                        <Percent className="w-5 h-5 text-cyan-400" />
+                        <span className="font-semibold text-white">Performance Metrics</span>
                       </div>
-                      <span className="font-bold text-cyan-300 text-lg">{row.value}</span>
                     </div>
-                  ))
-                ) : (
+
+                    <div className="bg-slate-800/40 p-2 rounded-lg border border-slate-700/50">
+                      <ul className="divide-y divide-slate-700/50">
+                        {grouped.metrics.map((m, i) => {
+                          const valueNum = parseInt(String(m.value).replace("%", "").trim(), 10);
+                          const color =
+                            valueNum > 70 ? "text-green-400" :
+                            valueNum < 30 ? "text-red-400" :
+                            "text-cyan-300";
+                          return (
+                            <li key={i} className="flex items-center justify-between py-3 px-2">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-slate-400" />
+                                <span className="text-white font-medium">{m.label}</span>
+                              </div>
+                              <span className={`font-bold text-lg ${color}`}>{m.value}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </>
+                )}
+
+                {/* Performance Overview */}
+                {(grouped.overview?.length ?? 0) > 0 && (
+                  <>
+                    <div className="flex items-center justify-between bg-slate-800/40 p-4 rounded-lg border border-slate-700/50">
+                      <div className="flex items-center gap-3">
+                        <ClipboardList className="w-5 h-5 text-yellow-400" />
+                        <span className="font-semibold text-white">Performance Overview</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-800/40 p-2 rounded-lg border border-slate-700/50 space-y-3">
+                      {grouped.overview.map((p, i) => (
+                        <div key={i} className="flex items-start gap-3 bg-transparent p-2 rounded-lg">
+                          <FileText className="w-5 h-5 text-slate-400 mt-1" />
+                          <p className="text-slate-100 text-sm leading-relaxed">{p}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Resume Review */}
+                {(grouped.resume?.length ?? 0) > 0 && (
+                  <>
+                    <div className="flex items-center justify-between bg-slate-800/40 p-4 rounded-lg border border-slate-700/50">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-cyan-400" />
+                        <span className="font-semibold text-white">Resume Review</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-800/40 p-2 rounded-lg border border-slate-700/50 space-y-3">
+                      {grouped.resume.map((p, i) => (
+                        <div key={i} className="flex items-start gap-3 bg-transparent p-2 rounded-lg">
+                          <FileText className="w-5 h-5 text-slate-400 mt-1" />
+                          <p className="text-slate-100 text-sm leading-relaxed">{p}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Recommendations */}
+                {(grouped.recommendations?.length ?? 0) > 0 && (
+                  <>
+                    <div className="flex items-center justify-between bg-slate-800/40 p-4 rounded-lg border border-slate-700/50">
+                      <div className="flex items-center gap-3">
+                        <ListChecks className="w-5 h-5 text-green-400" />
+                        <span className="font-semibold text-white">Recommendations</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-800/40 p-2 rounded-lg border border-slate-700/50">
+                      <ol className="list-decimal ml-6 my-2 space-y-2">
+                        {grouped.recommendations.map((r, i) => (
+                          <li key={i} className="text-slate-100 text-sm leading-relaxed">{r}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  </>
+                )}
+
+                {/* Fallback */}
+                {(grouped.metrics.length +
+                  grouped.overview.length +
+                  grouped.resume.length +
+                  grouped.recommendations.length === 0) && (
                   <span className="text-gray-400 text-sm font-semibold opacity-60 mt-10 block">
                     No results yet.
                   </span>

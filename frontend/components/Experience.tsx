@@ -14,10 +14,10 @@ type Msg = { from: "ai" | "user"; text: string };
 
 enum Phase {
   IDLE = "IDLE",
-  LISTEN_ARMED = "LISTEN_ARMED", // mic armed, waiting for voice
-  CAPTURING = "CAPTURING", // user is speaking
-  SENDING = "SENDING", // sending to server
-  PLAYING = "PLAYING", // AI audio playing
+  LISTEN_ARMED = "LISTEN_ARMED", 
+  CAPTURING = "CAPTURING", 
+  SENDING = "SENDING", 
+  PLAYING = "PLAYING", 
   ENDED = "ENDED",
 }
 
@@ -690,7 +690,7 @@ const gracefulEnd = async () => {
           <span className="ml-2 text-green-400 !text-xs border border-gray-700 bg-[#18271A] rounded-full px-3 py-0.5">Hiring</span>
         </div>
         <div className="flex items-center gap-3 mt-3 sm:mt-0">
-          <span className="text-slate-200/90 mr-1 md:!text-lg !text-sm">Interview Time</span>
+          <span className="text-slate-200/90 mr-1 md:!text-lg !text-sm">Interview Timer</span>
           <span className="font-mono !text-sm md:!text-lg pt-1 font-semibold text-green-400">{fmt(clock)}</span>
         </div>
       </div>
@@ -770,19 +770,42 @@ const gracefulEnd = async () => {
                   </div>
                 ))}
 
-                <AnimatePresence>
-                  {interim && phase !== Phase.PLAYING && (
-                    <motion.div key="interim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="flex items-start justify-end gap-2 w-full">
-                      <div className="bg-[#14333d] text-white/90 px-2 py-1 rounded-2xl rounded-tr-md max-w-[100%] text-[1rem] font-normal border border-blue-400/30" style={{ wordBreak: "break-word" }}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-blue-400">🎤</span>
-                          <span>{interim}</span>
-                          <span className="text-blue-400 animate-pulse">...</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+               <AnimatePresence>
+  {interim && phase !== Phase.PLAYING && (
+    <motion.div
+      key="interim"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.1 }}
+      className="flex items-start gap-2 w-full"
+    >
+      {/* avatar column (same as user) */}
+      <div className="flex-shrink-0 w-9 flex justify-center mt-0.5">
+        <span className="flex items-center justify-center rounded-full w-6 h-6 bg-transparent">
+          <User className="text-cyan-300 w-5 h-5" />
+        </span>
+      </div>
+
+      {/* bubble (same styles as user message) */}
+      <motion.div
+        initial={false}
+        className="px-2 py-1 rounded-2xl max-w-[85%] text-[0.6rem] font-normal text-white"
+        style={{
+          backgroundColor: "#17313a",
+          borderTopLeftRadius: "1rem",
+          borderTopRightRadius: "0.25rem",
+          wordBreak: "break-word",
+        }}
+      >
+        <span className="mr-1 align-middle">🎤</span>
+        <span className="align-middle">{interim}</span>
+        <span className="align-middle opacity-80 animate-pulse ml-1">…</span>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
                 <div ref={chatEndRef} />
               </div>
             </div>

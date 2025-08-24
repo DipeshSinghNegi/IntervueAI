@@ -176,7 +176,7 @@ const Grid = ({
                       S1
                     </div>
                     <TextGenerateEffect
-                      words="New Interview"
+                      words="Select  Parameters"
                       className="text-[20px] font-semibold"
                     />
                   </div>
@@ -194,21 +194,13 @@ const Grid = ({
                         <option>General Purpose</option>
                         <option>Behavioral</option>
                         <option>Technical</option>
+                        <option>Coding Challenge</option>
+                         <option>Communication Skills</option>
+                            <option>Leadership & Management</option>
                       </select>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <Label className="text-sm text-gray-300">Email</Label>
-                      <Input
-                        type="email"
-                        name="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        readOnly
-                        placeholder="e.g. your@email.com"
-                        className="bg-[#161b22] border border-gray-700 text-white opacity-60 cursor-not-allowed"
-                      />
-                    </div>
+                    
 
                     <div className="flex flex-col gap-1">
                       <Label className="text-sm text-gray-300">Company</Label>
@@ -227,7 +219,7 @@ const Grid = ({
                         value={position}
                         onChange={(e) => setPosition(e.target.value)}
                         required
-                        placeholder="e.g. SWE"
+                        placeholder="e.g. SDE"
                         className="bg-[#161b22] border border-gray-700 text-white"
                       />
                     </div>
@@ -277,7 +269,7 @@ const Grid = ({
                       S3
                     </div>
                     <TextGenerateEffect
-                      words="Start Simulation"
+                      words="Start Interview"
                       className="text-[20px] font-semibold"
                     />
                   </div>

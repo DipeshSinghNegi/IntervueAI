@@ -1,8 +1,18 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { useRouter, useSearchParams, useParams } from "next/navigation";
-import { Download, Bot, User, FileText, Star, Home, Loader2, Percent, ClipboardList, ListChecks } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Download,
+  Bot,
+  User,
+  FileText,
+  Home,
+  Loader2,
+  Percent,
+  ClipboardList,
+  ListChecks,
+} from "lucide-react";
 import { Button } from "./ui/MovingBorders";
 
 /* ----------------------------- Types ----------------------------- */
@@ -53,7 +63,6 @@ const Result = () => {
       setEmail(localEmail);
       fetchData(localSessionId, localEmail);
     } else {
-    
       setIsLoading(false);
       router.push("/");
     }
@@ -83,44 +92,48 @@ const Result = () => {
         company: response.session?.company || "N/A",
       });
 
-     const hist = Array.isArray(response.history) ? response.history : [];
-
-const chat: ChatMsg[] = hist
-  // drop the lone "start" message
-  .filter((item: any) => String(item?.content ?? "").trim().toLowerCase() !== "start")
-  .map((item: any) => ({
-    from: item.role === "user" ? "You" : "AI",
-    text: item.content,
-  }));
-
-setChatHistory(chat);
-
+      const hist = Array.isArray(response.history) ? response.history : [];
+      const chat: ChatMsg[] = hist
+        .filter((item: any) => String(item?.content ?? "").trim().toLowerCase() !== "start")
+        .map((item: any) => ({
+          from: item.role === "user" ? "You" : "AI",
+          text: item.content,
+        }));
+      setChatHistory(chat);
 
       const raw = response.results || "";
       setGrouped(parseGroupedResults(raw));
     } catch (err) {
-     
+      // no-op
     } finally {
       setIsLoading(false);
     }
   };
 
-  /* ----------------------- Robust results parser ----------------------- */
+  /* ----------------------- Robust, flexible parser (matches dashboard) ----------------------- */
   function normalize(s: string) {
-    return s.replace(/\*\*/g, "").replace(/\*/g, "").trim();
+    return String(s).replace(/\*\*/g, "").replace(/\*/g, "").trim();
   }
 
   function splitSections(raw: string) {
-    // Split by lines, keep non-empty
-    const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+    const lines = String(raw).split("\n").map(l => l.trim()).filter(Boolean);
 
-    // Identify headings by common keywords (case-insensitive)
     const headings = {
-      metrics: /performance\s*metrics?/i,
-      overview: /performance\s*overview/i,
-      resume: /resume\s*review/i,
-      recs: /recommendations?/i,
+      // accept “Performance Metrics/Matrix/Ratings/Breakdown/Scores”
+      metrics: /performance\s*(metrics?|matrix|ratings?|breakdown|scores?)\b/i,
+      // accept “Performance Overview/Overall Performance/Performance Summary/Overall Summary”
+      overview: /(performance\s*overview|overall\s*performance|performance\s*summary|overall\s*summary)\b/i,
+      // accept “Resume/CV Review/Analysis/Feedback/Critique”
+      resume: /(resume|cv)\s*(review|analysis|feedback|critique)\b/i,
+      // accept “Recommendations/Suggestions/Next Steps/Action Items/Improvements/Tips”
+      recs: /(recommendations?|suggestions?|next\s*steps|action\s*items?|improvements?|tips?)\b/i,
     };
+
+    const isSectionHeading = (s: string) =>
+      headings.metrics.test(s) ||
+      headings.overview.test(s) ||
+      headings.resume.test(s) ||
+      headings.recs.test(s);
 
     const buckets: { [k: string]: string[] } = {
       metrics: [],
@@ -131,70 +144,114 @@ setChatHistory(chat);
     };
 
     let current: keyof typeof buckets = "rest";
-    for (const line of lines) {
-      const plain = normalize(line);
+    for (const lineRaw of lines) {
+      const plain = normalize(lineRaw);
 
       if (headings.metrics.test(plain)) { current = "metrics"; continue; }
       if (headings.overview.test(plain)) { current = "overview"; continue; }
-      if (headings.resume.test(plain)) { current = "resume"; continue; }
-      if (headings.recs.test(plain)) { current = "recs"; continue; }
+      if (headings.resume.test(plain))  { current = "resume";  continue; }
+      if (headings.recs.test(plain))    { current = "recs";    continue; }
 
+      if (!plain || isSectionHeading(plain)) continue; // skip stray headings
       buckets[current].push(plain);
     }
     return buckets;
   }
 
   function parseMetrics(lines: string[]): Metric[] {
-    // Accept formats like:
-    //  * "Technical Knowledge" 60%
-    //  * Technical Knowledge: 60%
-    //  * Technical Knowledge - 60%
-    //  * "Communication Proficiency" : 50 %
     const out: Metric[] = [];
-    const rx = /^"?\*?\s*"?([^"%:–-]+?)"?\s*[:–-]?\s*(\d{1,3})\s*%$/i;
+    for (let raw of lines) {
+      if (!raw) continue;
 
-    for (const line of lines) {
-      // Skip any intro sentences that often appear under "Based on our mock interview..."
+      // strip common bullets/quotes/numbers and markdown bits
+      let line = normalize(
+        raw
+          .replace(/^\s*[-*•]\s+/, "")   // "- " / "• "
+          .replace(/^\s*\d+\.\s+/, "")   // "1. "
+          .replace(/^\s*"+|"+\s*$/g, "") // quotes
+      );
+
+      // skip intro sentences
       if (/based on|summary of your performance/i.test(line)) continue;
 
-      const m = line.match(rx);
-      if (m) {
-        out.push({ label: m[1].trim().replace(/^"|"$/g, ""), value: `${m[2]}%` });
-      }
+      // find a percent anywhere; allow notes after (e.g., "60% (Good)")
+      const pm = line.match(/(\d{1,3})\s*%/);
+      // also support x/100 → percent
+      const per100 = !pm ? line.match(/(\d{1,3})\s*\/\s*100\b/) : null;
+
+      let valueNum: number | null = null;
+      if (pm) valueNum = Math.min(100, Math.max(0, parseInt(pm[1], 10)));
+      else if (per100) valueNum = Math.min(100, Math.max(0, parseInt(per100[1], 10)));
+      if (valueNum === null || Number.isNaN(valueNum)) continue;
+
+      // label before ":" or " - " or before %/x/100
+      let label = line;
+      const colon = line.indexOf(":");
+      const dash3 = line.indexOf(" - ");
+      const sepIdx =
+        colon !== -1 && dash3 !== -1 ? Math.min(colon, dash3) :
+        colon !== -1 ? colon :
+        dash3 !== -1 ? dash3 : -1;
+
+      if (sepIdx !== -1)      label = line.slice(0, sepIdx);
+      else if (pm)            label = line.slice(0, pm.index!).trim();
+      else if (per100)        label = line.slice(0, per100.index!).trim();
+
+      label = label.replace(/[–—-]\s*$/,"").trim() || "Metric";
+      out.push({ label, value: `${valueNum}%` });
     }
     return out;
   }
 
   function parseParagraphs(lines: string[]): string[] {
-    // Merge wrapped lines into paragraphs while preserving bullets like "- ..." or "1. ...".
     const paras: string[] = [];
     let buf: string[] = [];
 
+    const headings = {
+      metrics: /performance\s*(metrics?|matrix|ratings?|breakdown|scores?)\b/i,
+      overview: /(performance\s*overview|overall\s*performance|performance\s*summary|overall\s*summary)\b/i,
+      resume: /(resume|cv)\s*(review|analysis|feedback|critique)\b/i,
+      recs: /(recommendations?|suggestions?|next\s*steps|action\s*items?|improvements?|tips?)\b/i,
+    };
+    const isSectionHeading = (s: string) =>
+      headings.metrics.test(s) ||
+      headings.overview.test(s) ||
+      headings.resume.test(s) ||
+      headings.recs.test(s);
+
     const flush = () => {
-      const txt = buf.join(" ").trim();
-      if (txt) paras.push(txt);
+      const txt = normalize(buf.join(" ").trim());
+      if (txt && !isSectionHeading(txt)) paras.push(txt);
       buf = [];
     };
 
-    for (const line of lines) {
-      // If it's a bullet/numbered line, treat as its own paragraph
-      if (/^(-|\d+\.)\s+/.test(line)) {
+    for (const raw of lines) {
+      const cleaned = normalize(
+        raw
+          .replace(/^\s*[-*•]\s+/, "") // bullets
+          .replace(/^\s*\d+\.\s+/, "") // numbered
+      );
+
+      if (!cleaned || isSectionHeading(cleaned)) { flush(); continue; }
+
+      if (/^(-|\d+\.)\s+/.test(raw)) { // bullet/number line → own paragraph
         flush();
-        paras.push(line.replace(/^(-|\d+\.)\s+/, "").trim());
+        paras.push(cleaned);
       } else {
-        buf.push(line);
+        buf.push(cleaned);
       }
     }
+
     flush();
     return paras;
   }
 
   function parseRecommendations(lines: string[]): string[] {
-    // Prefer numbered/bulleted; otherwise fallback to paragraphs
     const items: string[] = [];
-    for (const line of lines) {
+    for (const raw of lines) {
+      const line = normalize(raw);
       const m = line.match(/^(?:-|\d+\.)\s*(.+)$/);
-      if (m) items.push(m[1].trim());
+      if (m) items.push(normalize(m[1]));
     }
     if (items.length) return items;
     return parseParagraphs(lines);
@@ -202,16 +259,14 @@ setChatHistory(chat);
 
   function parseGroupedResults(raw: string): GroupedResults {
     const sections = splitSections(raw);
-
     const metrics = parseMetrics(sections.metrics.length ? sections.metrics : sections.rest);
     const overview = parseParagraphs(sections.overview);
     const resume = parseParagraphs(sections.resume);
     const recommendations = parseRecommendations(sections.recs);
-
     return { metrics, overview, resume, recommendations };
   }
 
-  /* ----------------------- Download helper (unchanged) ----------------------- */
+  /* ----------------------- Download helper ----------------------- */
   const handleDownload = () => {
     const blob = new Blob(
       [JSON.stringify({ sessionId, chatHistory, grouped }, null, 2)],
@@ -285,14 +340,14 @@ setChatHistory(chat);
             {/* Results (GROUPED) */}
             <div className="w-full h-full  flex flex-col overflow-hidden">
               <h2 className="font-bold text-xl text-white p-4 border-b border-[#1b1f2f]">Result Summary</h2>
-<div
-  className="
-    flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar
-    [&_p]:text-base [&_li]:text-base
-    md:[&_p]:text-xl md:[&_li]:text-xl md:[&_span.font-semibold]:text-2xl
-  "
->
 
+              <div
+                className="
+                  flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar
+                  [&_p]:text-base [&_li]:text-base
+                  md:[&_p]:text-xl md:[&_li]:text-xl md:[&_span.font-semibold]:text-2xl
+                "
+              >
                 {/* Performance Metrics (one box) */}
                 {(grouped.metrics?.length ?? 0) > 0 && (
                   <>
@@ -304,26 +359,25 @@ setChatHistory(chat);
                     </div>
 
                     <div className="bg-slate-800/40 p-2 rounded-lg border border-slate-700/50">
-                    <ul className="divide-y divide-slate-700/50">
-  {grouped.metrics.map((m, i) => {
-    const valueNum = parseInt(String(m.value).replace("%", "").trim(), 10);
-    const color =
-      valueNum > 70 ? "text-green-400" :
-      valueNum < 30 ? "text-red-400" :
-      "text-cyan-300"; // mid-range
+                      <ul className="divide-y divide-slate-700/50">
+                        {grouped.metrics.map((m, i) => {
+                          const valueNum = parseInt(String(m.value).replace("%", "").trim(), 10);
+                          const color =
+                            valueNum > 70 ? "text-green-400" :
+                            valueNum < 30 ? "text-red-400" :
+                            "text-cyan-300";
 
-    return (
-      <li key={i} className="flex items-center justify-between py-3 px-2">
-        <div className="flex items-center gap-3">
-          <FileText className="w-5 h-5 text-slate-400" />
-          <span className="text-white font-medium">{m.label}</span>
-        </div>
-        <span className={`font-bold text-lg ${color}`}>{m.value}</span>
-      </li>
-    );
-  })}
-</ul>
-
+                          return (
+                            <li key={i} className="flex items-center justify-between py-3 px-2">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-slate-400" />
+                                <span className="text-white font-medium">{m.label}</span>
+                              </div>
+                              <span className={`font-bold text-lg ${color}`}>{m.value}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     </div>
                   </>
                 )}
