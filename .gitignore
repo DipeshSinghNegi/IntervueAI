@@ -1,24 +1,43 @@
+# =========================
+# Python (old FastAPI backend, safe to keep)
+# =========================
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.env
-.env.*
 *.sqlite3
-sessions/
-memory/
-static/audio/
-*.wav
-*.mp3
-*.webm
 rain.py
 ffmpeg-*/
 *.exe
+bfg-1.14.0.jar
 app/**/__pycache__/
 app/sessions/
-bfg-1.14.0.jar
 
-# Frontend files to ignore
+# =========================
+# Node.js (Express backend)
+# =========================
+/backend/node_modules
+/backend/sessions
+/backend/.env
+/backend/.env.*
+/backend/npm-debug.log*
+/backend/yarn-debug.log*
+/backend/yarn-error.log*
+
+# Build artifacts
+/backend/dist
+/backend/build
+
+# Audio/temp files
+/backend/memory/
+/backend/static/audio/
+*.wav
+*.mp3
+*.webm
+
+# =========================
+# Next.js (Frontend)
+# =========================
 /frontend/node_modules
 /frontend/.next
 /frontend/out
@@ -30,7 +49,7 @@ bfg-1.14.0.jar
 /frontend/yarn-debug.log*
 /frontend/yarn-error.log*
 
-# Environment
+# Frontend environment
 /frontend/.env.local
 /frontend/.env.development.local
 /frontend/.env.test.local
@@ -44,9 +63,13 @@ bfg-1.14.0.jar
 *.pem
 *.tsbuildinfo
 
+# =========================
 # Prisma (if used)
+# =========================
 lib/generated/prisma
 
-# ⬅️ Allow Sentry config explicitly (important for Vercel)
+# =========================
+# Sentry configs (allowed explicitly)
+# =========================
 !frontend/sentry.server.config.ts
 !frontend/sentry.client.config.ts
