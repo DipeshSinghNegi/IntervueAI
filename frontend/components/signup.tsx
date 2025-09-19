@@ -21,7 +21,7 @@ export default function Signup() {
     script.async = true;
     script.defer = true;
     document.body.appendChild(script);
-
+3
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
     script.onload = () => {
       if (window.google) {
@@ -34,7 +34,7 @@ export default function Signup() {
 
             // Your existing artificial delay (optional)
             setTimeout(() => {
-              fetch(`${API_BASE_URL}api/v1/gauth`, {
+              fetch(`${API_BASE_URL}/auth/google`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: response.credential }),

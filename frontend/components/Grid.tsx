@@ -67,7 +67,7 @@ const Grid = ({
       formData.append("language", language);
       if (resume) formData.append("resume", resume);
 
-      const res = await fetch(`${API_BASE_URL}api/v1/create_session`, {
+      const res = await fetch(`${API_BASE_URL}/session/start`, {
         method: "POST",
         body: formData,
       });

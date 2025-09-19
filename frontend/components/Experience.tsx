@@ -411,7 +411,7 @@ useEffect(() => {
     try {
        const ac = new AbortController();
   streamAbortRef.current = ac;
-  const res = await fetch(`${API_BASE_URL}api/v1/${endpoint}`, {
+ const res = await fetch(`${API_BASE_URL}/interview/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ session_id: String(sessionId), user_input, email }),
@@ -504,7 +504,7 @@ useEffect(() => {
 
   const ackChunk = async (n: number) => {
     try {
-      await fetch(`${API_BASE_URL}api/v1/acknowledge_chunk`, {
+      await fetch(`${API_BASE_URL}/interview/ack-chunk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: String(sessionId), chunk: n }),
@@ -546,7 +546,7 @@ const gracefulEnd = async () => {
 
    // Notify backend
    try {
-     await fetch(`${API_BASE_URL}api/v1/end_interview`, {
+     await fetch(`${API_BASE_URL}/interview/end`, {
        method: "POST",
        headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: String(sessionId), email }),
@@ -618,14 +618,14 @@ const gracefulEnd = async () => {
   const onStart = async () => {
     if (endedRef.current) return;
     setPhase(Phase.LISTEN_ARMED);
-    await streamAI("start_interview", "start");
+    await streamAI("start", "start");
   };
 
   const submitUser = async (text: string) => {
     if (!text.trim() || endedRef.current) return;
     setMessages((p) => [...p, { from: "user", text }]);
     setInterim("");
-    await streamAI("continue_interview", text.trim());
+    await streamAI("continue", text.trim());
   };
 
   const onLeave = () => {

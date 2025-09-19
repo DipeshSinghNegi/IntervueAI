@@ -115,7 +115,7 @@ const Result = () => {
     setIsLoading(true);
 
     try {
-      const endpoint = api("/api/v1/show_results");
+      const endpoint = api("/interview/results");
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -68,47 +68,53 @@ const Result = () => {
     }
   }, []);
 
-  const fetchData = async (session_id: string, email: string) => {
-    try {
-      setIsLoading(true);
-      const res = await fetch(`${API_BASE_URL}api/v1/show_results`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id, email }),
-      });
+ const fetchData = async (session_id: string, email: string) => {
+  try {
+    setIsLoading(true);
 
-      const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) {
-        setIsLoading(false);
-        return;
-      }
+    const res = await fetch(`${API_BASE_URL.replace(/\/+$/, "")}/interview/results`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id, email }),
+    });
 
-      const response = data[0];
-      setSessionId(response.session?.session_id || session_id);
-      setUserMeta({
-        name: response.session?.user_email || "N/A",
-        email: response.session?.user_email || "N/A",
-        job_role: response.session?.role || "N/A",
-        company: response.session?.company || "N/A",
-      });
-
-      const hist = Array.isArray(response.history) ? response.history : [];
-      const chat: ChatMsg[] = hist
-        .filter((item: any) => String(item?.content ?? "").trim().toLowerCase() !== "start")
-        .map((item: any) => ({
-          from: item.role === "user" ? "You" : "AI",
-          text: item.content,
-        }));
-      setChatHistory(chat);
-
-      const raw = response.results || "";
-      setGrouped(parseGroupedResults(raw));
-    } catch (err) {
-      // no-op
-    } finally {
-      setIsLoading(false);
+    if (!res.ok) {
+      throw new Error(`Failed with status ${res.status}`);
     }
-  };
+
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      setIsLoading(false);
+      return;
+    }
+
+    const response = data[0];
+    setSessionId(response.session?.session_id || session_id);
+    setUserMeta({
+      name: response.session?.user_email || "N/A",
+      email: response.session?.user_email || "N/A",
+      job_role: response.session?.role || "N/A",
+      company: response.session?.company || "N/A",
+    });
+
+    const hist = Array.isArray(response.history) ? response.history : [];
+    const chat: ChatMsg[] = hist
+      .filter((item: any) => String(item?.content ?? "").trim().toLowerCase() !== "start")
+      .map((item: any) => ({
+        from: item.role === "user" ? "You" : "AI",
+        text: item.content,
+      }));
+    setChatHistory(chat);
+
+    const raw = response.results || "";
+    setGrouped(parseGroupedResults(raw));
+  } catch (err) {
+    console.error("Error fetching results:", err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   /* ----------------------- Robust, flexible parser (matches dashboard) ----------------------- */
   function normalize(s: string) {
