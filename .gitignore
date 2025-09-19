@@ -1,5 +1,5 @@
 # =========================
-# Python (old FastAPI backend, safe to keep)
+
 # =========================
 __pycache__/
 *.pyc
