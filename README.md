@@ -1,269 +1,95 @@
-IntervueAI – Real-Time AI Mock Interview Platform
+IntervueAI — AI-Powered Interview Simulator
 
-IntervueAI is a full-stack AI-powered mock interview platform that simulates real interviews using voice, live LLM streaming, and performance analytics.
-Users speak naturally, the system listens, generates follow-up questions, and produces a detailed interview report.
+IntervueAI is a real-time, AI-driven mock interview platform designed to help candidates practice behavioral, technical, and HR interviews. It provides instant feedback on answers, evaluates performance, and gives resume suggestions.
 
-This project combines Next.js, Express.js, PostgreSQL, DeepInfra/OpenAI LLMs, Speech-to-Text, and Text-to-Speech streaming to deliver a realistic interview experience.
 
-⭐ Features
+Demo
 
-🔐 Google OAuth Login
+Live Demo: https://intervue-ai-ii.vercel.app/
 
-📝 Interview form (Role, Company, Domain, Difficulty)
+Features
 
-🎙 Real-time voice interview
+AI-driven interviews: Behavioral, technical, and HR questions in real time.
 
-⚡ AI streaming responses (text + audio chunks)
+Speech-to-text & text-to-speech: Talk naturally, and the AI responds dynamically.
 
-🧠 Context-aware LLM interviewer
+Google OAuth: Secure login and session management.
 
-💾 Session-based history tracking
+Dashboard: View past interview sessions, metrics, feedback, and recommendations.
 
-📊 AI-generated results (Metrics, Overview, Resume Review, Recommendations)
+Resume review: AI provides feedback on uploaded or input resume information.
 
-🎛 Beautiful dashboard UI
+Session management: Users can save and continue multiple interview sessions.
 
-🏗️ Architecture
-[Frontend: Next.js + Tailwind]
-        |
-        v
-(1) Google OAuth → [Auth API] → [users table]
+Tech Stack
 
-        |
-        v
-(2) Interview Form → [POST /interview/start] → [sessions table]
+Frontend: Next.js, React, TypeScript, TailwindCSS, WebRTC, Web Speech API
+Backend: Node.js (Express), PostgreSQL, Supabase (for storage and auth)
+AI Integration: Large Language Models (LLMs - DeepInfra)
 
-        |
-        v
-(3) Real-time Q/A
-    STT → /interview/answer → Save user message
-                      ↓
-                Call LLM (DeepInfra/OpenAI)
-                      ↓
-    STREAM back AI text chunks + TTS audio chunks
-                      ↓
-           Save AI reply → [history table]
+Architecture & Workflow
 
-        |
-        v
-(4) End Interview
-    Fetch full history → LLM Analysis
-    → Save in [results table]
+High-level workflow:
 
-        |
-        v
-(5) Results Page
-    Fetch results → show Metrics, Overview, Resume Review, Recommendations
+Login: User authenticates via Google OAuth.
 
-⚙️ Tech Stack
-Frontend
+Form Fill: User selects role, company, and interview preferences.
 
-Next.js 14
+Interview Session:
 
-Tailwind CSS
+User answers via microphone.
 
-Web Speech API (Speech-to-Text)
+Frontend converts voice → text (STT).
 
-Web Audio API (TTS decoding & playback)
+Backend sends text + session context → LLM → AI response.
 
-Streaming text UI (Typewriter effect)
+Frontend plays AI’s response (TTS) and animates text using Typewriter.
 
-Backend
+End of Interview: Backend generates performance metrics, summary, and recommendations.
 
-Node.js + Express.js
+Results Dashboard: Users view scores, feedback, chat history, and resume analysis.
 
-Chunked streaming responses (res.write())
+Installation
 
-DeepInfra/OpenAI Chat Completions
+Clone the repository:
 
-Google OAuth token verification
+git clone https://github.com/DipeshSinghNegi/IntervueAI.git
+cd IntervueAI
 
-Session management
 
-REST APIs
+Install dependencies:
 
-Database
-
-PostgreSQL
-
-Tables: users, sessions, history, results
-
-🔥 Core Workflow Explained
-1. Authentication (Google OAuth)
-
-User logs in via Google
-
-Frontend receives Google token
-
-Sends token → /auth/google
-
-Backend verifies using Google API
-
-Stores/updates user → users table
-
-Sends JWT + user info back
-
-Frontend stores email + token in localStorage
-
-2. Start Interview Session
-
-User fills interview details → frontend calls:
-
-POST /interview/start
-
-
-Backend:
-
-Creates session
-
-Generates session_id
-
-Stores in sessions table
-
-Sends session_id back
-
-3. Real-Time Interview (LLM Streaming)
-
-This is the main engine 🧠⚡
-
-Frontend
-
-Records user voice
-
-Converts speech → text
-
-Sends answer → /interview/answer
-
-Backend
-
-Saves user answer into history table
-
-Sends answer + conversation history → LLM
-
-Receives LLM response as a stream:
-
-Text chunks
-
-Audio chunks (Base64)
-
-Writes chunks to frontend as soon as they arrive
-
-Once full answer is received → store AI reply in DB
-
-Frontend receives stream
-
-Displays text chunk-by-chunk
-
-Decodes audio → plays via Web Audio API
-
-Looks like a real interviewer speaking live
-
-4. End Interview → AI Analysis
-
-When user ends the session:
-
-Backend fetches entire history
-
-Sends full transcript → LLM
-
-LLM generates:
-
-Performance Metrics (%)
-
-Performance Overview
-
-Resume Feedback
-
-Improvement Recommendations
-
-Stored in results table
-
-5. Results Dashboard
-
-Frontend calls:
-
-POST /interview/results
-
-
-Displays:
-
-📊 Metrics
-
-📝 Overview
-
-📄 Resume Review
-
-💡 Recommendations
-
-🗄️ Database Schema
-CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  email TEXT UNIQUE,
-  name TEXT
-);
-
-CREATE TABLE sessions (
-  session_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_email TEXT REFERENCES users(email),
-  role TEXT,
-  company TEXT,
-  language TEXT,
-  difficulty TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE history (
-  id SERIAL PRIMARY KEY,
-  session_id UUID REFERENCES sessions(session_id),
-  role TEXT,       -- 'user' or 'ai'
-  content TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE results (
-  id SERIAL PRIMARY KEY,
-  session_id UUID REFERENCES sessions(session_id),
-  analysis TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-🔌 API Endpoints
-Auth
-POST /auth/google
-
-Interview
-POST /interview/start
-POST /interview/answer        ← Streaming response
-POST /interview/end
-POST /interview/results
-
-🤖 LLM Integration (Streaming)
-const response = await axios({
-  method: "post",
-  url: "https://api.deepinfra.com/v1/chat/completions",
-  data: payload,
-  responseType: "stream",
-  headers: { Authorization: `Bearer ${API_KEY}` }
-});
-
-response.data.on("data", (chunk) => {
-  const parsed = parseStreamChunk(chunk);
-  res.write(parsed); // send text/audio chunks to frontend
-});
-
-▶️ Running the Project
-Backend Setup
-cd backend
 npm install
-npm run dev
 
-Frontend Setup
-cd frontend
-npm install
+
+Setup environment variables (.env.local):
+
+NEXT_PUBLIC_API_BASE_URL=<your_backend_url>
+GOOGLE_CLIENT_ID=<your_google_oauth_client_id>
+
+
+Start the development server:
+
 npm run dev
 
 
-📸 Screenshots 
+Open http://localhost:3000
+ in your browser.
+
+Usage
+
+Login with Google.
+
+Fill in your role and company.
+
+Start the interview — speak naturally.
+
+View AI feedback and recommendations.
+
+Download session results as JSON for record-keeping.
+
+Project Screenshots
+
 ![IntervuAi](https://github.com/user-attachments/assets/8113433a-ccb1-4ef1-aafb-416346315f9d)
 ![intervuesi](https://github.com/user-attachments/assets/15cbf78a-0514-4b44-bbc7-7cbb03536ddf)
 
