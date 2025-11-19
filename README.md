@@ -1,92 +1,243 @@
-IntervueAI — AI-Powered Interview Simulator
+🔥 IntervueAI — AI-Powered Mock Interview Simulator
 
-IntervueAI is a real-time, AI-driven mock interview platform designed to help candidates practice behavioral, technical, and HR interviews. It provides instant feedback on answers, evaluates performance, and gives resume suggestions.
+Practice real interviews with AI. Improve faster. Get job-ready.
+
+An AI-powered mock interview platform that simulates HR, Behavioral, and Technical interviews in real time.
+Speak naturally → AI listens → evaluates → responds → scores your performance → gives improvement recommendations.
+
+Perfect for candidates preparing for real interviews.
+
+🚀 Features
+
+🎙 Real-time AI Interviewer (voice-based)
+
+🗣 Speech-to-Text + Text-to-Speech
+
+🤖 LLM-powered dynamic questioning (DeepInfra)
+
+📊 Performance Metrics (communication, clarity, domain)
+
+📝 Interview Summary + Recommendations
+
+🔐 Google OAuth Login
+
+💾 Session-based storage (PostgreSQL)
+
+📚 Downloadable chat history & results
+
+📱 Responsive UI (Next.js + Tailwind)
+
+🛠️ Tech Stack
+Frontend
+
+Next.js 14 + React + TypeScript
+
+Tailwind CSS
+
+WebRTC Microphone Capture
+
+Web Speech API (STT & TTS)
+
+Typewriter Animation Component
+
+Backend
+
+Node.js (Express)
+
+PostgreSQL
+
+Supabase (DB hosting)
+
+DeepInfra LLM API
+
+JWT-based auth session
+
+DevOps
+
+Vercel (Frontend)
+
+Render / Railway (Backend)
+
+📁 Project Structure
+IntervueAI/
+├── frontend/
+│   ├── app/
+│   │   ├── interview/          # Live AI interview page
+│   │   ├── result/             # Results & metrics
+│   │   └── form/               # Role/company form
+│   ├── components/
+│   │   ├── Typerwriter.tsx     # Animated AI response
+│   │   ├── Recorder.tsx        # Mic recorder
+│   │   └── OAuthButton.tsx     # Google login button
+│   ├── public/
+│   └── package.json
+│
+├── backend/
+│   ├── routes/
+│   │   ├── auth.js
+│   │   ├── session.js
+│   │   ├── interview.js
+│   │   └── results.js
+│   ├── services/
+│   │   ├── db.js               # PostgreSQL client
+│   │   ├── llm.js              # DeepInfra LLM handler
+│   │   ├── tts.js              # Text-to-speech API
+│   │   └── sessionHandler.js   # Session logic
+│   ├── app.js
+│   ├── .env
+│   └── package.json
+│
+└── README.md
+
+⚙️ How It Works — System Workflow
+
+A simple breakdown of how the whole platform runs end-to-end.
+
+1️⃣ Login & User Authentication (Google OAuth)
+
+User clicks “Continue with Google” → Frontend gets token → Backend verifies → Creates/stores user in DB.
+
+Frontend → Google Token → Backend → Verify → Create User → Return auth session
 
 
-Demo
+Stored in DB:
+✔ email
+✔ name
+✔ user_id
 
-Live Demo: https://intervue-ai-ii.vercel.app/
+2️⃣ User Form (Role + Company + Job Type)
 
-Features
+User enters:
 
-AI-driven interviews: Behavioral, technical, and HR questions in real time.
+Role → e.g., “Frontend Developer”
 
-Speech-to-text & text-to-speech: Talk naturally, and the AI responds dynamically.
+Company → e.g., “Google”
 
-Google OAuth: Secure login and session management.
+Interview Type → “Technical / HR / Behavioral”
 
-Dashboard: View past interview sessions, metrics, feedback, and recommendations.
+Frontend sends this to backend → backend creates a new session.
 
-Resume review: AI provides feedback on uploaded or input resume information.
+POST /session/create
+{
+  role: "...",
+  company: "...",
+  email: "..."
+}
 
-Session management: Users can save and continue multiple interview sessions.
 
-Tech Stack
+Backend stores:
+✔ session_id
+✔ role
+✔ company
+✔ email
 
-Frontend: Next.js, React, TypeScript, TailwindCSS, WebRTC, Web Speech API
-Backend: Node.js (Express), PostgreSQL, Supabase (for storage and auth)
-AI Integration: Large Language Models (LLMs - DeepInfra)
+3️⃣ AI Interview Loop (Main Interaction)
 
-Architecture & Workflow
+The MOST important part of your project.
 
-High-level workflow:
+✔ Step 1: User speaks
 
-Login: User authenticates via Google OAuth.
+Frontend records audio → converts to text (STT).
 
-Form Fill: User selects role, company, and interview preferences.
+✔ Step 2: Frontend sends text answer to backend
+POST /interview/answer
+{ session_id, user_answer }
 
-Interview Session:
+✔ Step 3: Backend LLM logic
 
-User answers via microphone.
+Backend sends to DeepInfra LLM:
 
-Frontend converts voice → text (STT).
+role
 
-Backend sends text + session context → LLM → AI response.
+company
 
-Frontend plays AI’s response (TTS) and animates text using Typewriter.
+previous chat history
 
-End of Interview: Backend generates performance metrics, summary, and recommendations.
+latest user answer
 
-Results Dashboard: Users view scores, feedback, chat history, and resume analysis.
+LLM returns:
 
-Installation
+next question
 
-Clone the repository:
+brief analysis
 
+✔ Step 4: Backend returns both to frontend
+
+Frontend plays audio (TTS) + animates text via Typewriter component.
+
+AI Question (audio + animated text)
+
+4️⃣ Ending the Interview
+
+Frontend calls:
+
+POST /interview/end
+
+
+Backend processes:
+
+Calculates performance metrics
+
+Generates summary
+
+Creates recommendations
+
+Stores result in DB
+
+5️⃣ Results Dashboard
+
+Frontend fetches:
+
+POST /interview/results
+
+
+Displays:
+
+Performance Metrics
+
+Overview
+
+Resume notes
+
+Recommendations
+
+Full chat history
+
+Users can download JSON of the results.
+
+🧱 System Architecture Diagram
+ ┌───────────────────┐
+ │     FRONTEND      │
+ │  (Next.js / STT)   │
+ └───────┬───────────┘
+         │ Sends voice → text
+         ▼
+ ┌───────────────────┐
+ │     BACKEND       │
+ │   (Express API)   │
+ └───────┬───────────┘
+         │ Sends user answer + context
+         ▼
+ ┌──────────────────────────┐
+ │    LLM ENGINE (AI)       │
+ │   DeepInfra Llama/Deep   │
+ └───────┬──────────────────┘
+         │ Sends AI question
+         ▼
+ ┌───────────────────┐
+ │     FRONTEND      │
+ │ TTS + Typewriter  │
+ └───────────────────┘
+
+🧑‍💻 Getting Started
+Clone Repo
 git clone https://github.com/DipeshSinghNegi/IntervueAI.git
 cd IntervueAI
 
+Install dependencies (frontend + backend)
+cd frontend && npm install
+cd backend && npm install
 
-Install dependencies:
-
-npm install
-
-
-Setup environment variables (.env.local):
-
-NEXT_PUBLIC_API_BASE_URL=<your_backend_url>
-GOOGLE_CLIENT_ID=<your_google_oauth_client_id>
-
-
-Start the development server:
-
-npm run dev
-
-
-Open http://localhost:3000
- in your browser.
-
-Usage
-
-Login with Google.
-
-Fill in your role and company.
-
-Start the interview — speak naturally.
-
-View AI feedback and recommendations.
-
-Download session results as JSON for record-keeping.
 
 Project Screenshots
 
