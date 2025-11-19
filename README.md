@@ -99,6 +99,7 @@ Project Screenshots
 🧑‍💻 Author
 
 Dipesh Singh Negi
+Ansh Agnihotri
 Creator of IntervueAI
 Full-Stack Developer | AI Enthusiast
 
