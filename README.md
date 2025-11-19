@@ -52,42 +52,7 @@ DeepInfra LLM API
 
 JWT-based auth session
 
-DevOps
 
-Vercel (Frontend)
-
-Render / Railway (Backend)
-
-📁 Project Structure
-IntervueAI/
-├── frontend/
-│   ├── app/
-│   │   ├── interview/          # Live AI interview page
-│   │   ├── result/             # Results & metrics
-│   │   └── form/               # Role/company form
-│   ├── components/
-│   │   ├── Typerwriter.tsx     # Animated AI response
-│   │   ├── Recorder.tsx        # Mic recorder
-│   │   └── OAuthButton.tsx     # Google login button
-│   ├── public/
-│   └── package.json
-│
-├── backend/
-│   ├── routes/
-│   │   ├── auth.js
-│   │   ├── session.js
-│   │   ├── interview.js
-│   │   └── results.js
-│   ├── services/
-│   │   ├── db.js               # PostgreSQL client
-│   │   ├── llm.js              # DeepInfra LLM handler
-│   │   ├── tts.js              # Text-to-speech API
-│   │   └── sessionHandler.js   # Session logic
-│   ├── app.js
-│   ├── .env
-│   └── package.json
-│
-└── README.md
 
 ⚙️ How It Works — System Workflow
 
@@ -206,28 +171,8 @@ Full chat history
 Users can download JSON of the results.
 
 🧱 System Architecture Diagram
- ┌───────────────────┐
- │     FRONTEND      │
- │  (Next.js / STT)   │
- └───────┬───────────┘
-         │ Sends voice → text
-         ▼
- ┌───────────────────┐
- │     BACKEND       │
- │   (Express API)   │
- └───────┬───────────┘
-         │ Sends user answer + context
-         ▼
- ┌──────────────────────────┐
- │    LLM ENGINE (AI)       │
- │   DeepInfra Llama/Deep   │
- └───────┬──────────────────┘
-         │ Sends AI question
-         ▼
- ┌───────────────────┐
- │     FRONTEND      │
- │ TTS + Typewriter  │
- └───────────────────┘
+
+<img width="385" height="546" alt="Screenshot 2025-11-19 at 6 20 55 PM" src="https://github.com/user-attachments/assets/2ae27c17-602e-4ce5-975e-06bd009f9fc7" />
 
 🧑‍💻 Getting Started
 Clone Repo
